@@ -133,6 +133,13 @@ int  pending_bit7 = 0;          /* last $4210 read returned bit7 */
  * Win64 and System V ABIs, so it survives into a helper. That lets a helper
  * report WHICH instruction called it without changing the generated code. */
 unsigned long bit7_pc[8]; unsigned long bit7_pc_n = 0;
+
+/* Sequential PC log. Render() is called from __CPUSync once per instruction,
+ * and r12 still holds that instruction's PC, so this records the execution
+ * ORDER -- which the interpreter's trace cannot provide, being deduplicated by
+ * pc. Diffing the two orders is what locates a control-flow divergence. */
+FILE *pclog = NULL;
+unsigned long pclog_left = 0;
 unsigned long n_after_bit7_set = 0, n_after_bit7_clear = 0;
 
 /* Ring of the last writes to $4200 (NMITIMEN). The register ends up holding
@@ -198,6 +205,12 @@ int main(int argc, char **argv)
   fclose(f);
 
   io_stats_on = getenv("SNESREC_IOSTATS") ? 1 : 0;
+  { const char *pl = getenv("SNESREC_PCLOG");
+    if (pl && *pl) {
+      const char *n = getenv("SNESREC_PCLOG_MAX");
+      pclog_left = n ? strtoul(n, NULL, 0) : 200000;
+      pclog = fopen(pl, "w");
+    } }
   if (plat_init("SNES Recomp Runtime") < 0) {
     printf("error: plat_init() failed.\n");
     return -1;
@@ -309,6 +322,11 @@ void DoMessages(void)
 int NMI = 0;
 extern "C" void Render(void)
 {
+  if (pclog && pclog_left) {
+    register unsigned long r12v asm("r12");
+    fprintf(pclog, "%06lX\n", r12v & 0xFFFFFF);
+    if (--pclog_left == 0) { fclose(pclog); pclog = NULL; }
+  }
   if (NMI)
     return;
   
