@@ -13,6 +13,7 @@ DESCRIPTION
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include "platform/platform.h"
 
 #include <iostream>
@@ -166,6 +167,11 @@ int dma_log_on = 0;                               /* SNESREC_DMALOG diagnostic *
  * execute WRAM code if the WRAM bytes match what was traced, so "who was
  * supposed to write this, and did they" is a question that comes up a lot. */
 unsigned long watch_addr = 0;
+/* SNESREC_DBRAT=<hex pc>: report DBR each time that instruction runs. An
+ * absolute address takes its bank from DBR, so when this and the interpreter
+ * disagree about an `LDA abs` while holding identical memory, DBR is the
+ * thing that differs. */
+unsigned long dbr_at = 0, dbr_hits = 0;
 unsigned long apu_log_n = 0;
 
 /* Diagnostic: which IO register is the game spinning on? Enabled by
@@ -255,6 +261,8 @@ int main(int argc, char **argv)
   apu_log_on  = getenv("SNESREC_APULOG") ? 1 : 0;
   ppu_log_on  = getenv("SNESREC_PPULOG") ? 1 : 0;
   dma_log_on  = getenv("SNESREC_DMALOG") ? 1 : 0;
+  { const char *d = getenv("SNESREC_DBRAT");
+    dbr_at = d && *d ? strtoul(d, NULL, 16) : 0; }
   { const char *w = getenv("SNESREC_WATCH");
     watch_addr = w && *w ? strtoul(w, NULL, 16) : 0; }
   { const char *pl = getenv("SNESREC_PCLOG");
@@ -268,6 +276,26 @@ int main(int argc, char **argv)
     return -1;
   }
   
+  /*
+   * WRAM must start at 0x55, not 0x00.
+   *
+   * A global array is zero-filled by the C runtime, but the trace this binary
+   * replays was recorded on snes9x, which does `memset(Memory.RAM, 0x55, ...)`
+   * at reset (pocketsnes/snes9x/cpu.cpp). Games read RAM before writing it --
+   * FF6 does so at $C3A436:
+   *
+   *     LDA $1D54     ; never written by anyone; still the fill byte
+   *     AND #$40      ; 0x55 & 0x40 = 0x40 -> set,  0x00 & 0x40 -> clear
+   *     BEQ +4        ; so the two disagree on the very first pass
+   *
+   * and took opposite branches, putting the recompiled binary off the traced
+   * path at the 418th unique PC. Real hardware leaves RAM indeterminate and a
+   * game leaning on it is relying on undefined behaviour, but that is not the
+   * bar here: the trace IS this binary's specification, so the fill has to be
+   * whatever the tracer used.
+   */
+  memset(wram, 0x55, WRAM_SIZE);
+
   // Reset Flags
   X_Flag = 1;
   M_Flag = 1;
@@ -374,6 +402,11 @@ void DoMessages(void)
 int NMI = 0;
 extern "C" void Render(void)
 {
+  if (dbr_at) {
+    register unsigned long r12v asm("r12");
+    if ((r12v & 0xFFFFFF) == dbr_at && dbr_hits++ < 8)
+      fprintf(stderr, "DBRAT %06lX  DBR=%02X\n", r12v & 0xFFFFFF, regDBR);
+  }
   if (pclog && pclog_left) {
     register unsigned long r12v asm("r12");
     fprintf(pclog, "%06lX\n", r12v & 0xFFFFFF);
