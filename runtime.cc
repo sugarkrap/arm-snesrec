@@ -155,6 +155,11 @@ int ipl_busy = 0;                                 /* has the $CC kick happened? 
 uint8_t ipl_ctr = 0;                              /* next byte counter the IPL expects */
 int ipl_handover = 0;                             /* end kick echoed; driver about to start */
 int apu_log_on = 0;                               /* SNESREC_APULOG diagnostic */
+/* The VMADDL/VMADDH tracing was left switched on unconditionally while its
+ * neighbours were commented out, so every run buried its own output under a
+ * VRAM-address flood -- and paid for a printf per PPU address write. Gated
+ * rather than deleted: it is the right diagnostic when a screen is wrong. */
+int ppu_log_on = 0;                               /* SNESREC_PPULOG diagnostic */
 unsigned long apu_log_n = 0;
 
 /* Diagnostic: which IO register is the game spinning on? Enabled by
@@ -242,6 +247,7 @@ int main(int argc, char **argv)
 
   io_stats_on = getenv("SNESREC_IOSTATS") ? 1 : 0;
   apu_log_on  = getenv("SNESREC_APULOG") ? 1 : 0;
+  ppu_log_on  = getenv("SNESREC_PPULOG") ? 1 : 0;
   { const char *pl = getenv("SNESREC_PCLOG");
     if (pl && *pl) {
       const char *n = getenv("SNESREC_PCLOG_MAX");
@@ -1200,7 +1206,7 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
     ppu.VMAIN = v;
   } else
   if (addr == 0x2116 /* VMADDL */) {
-    printf("WRITE8(%02X) to VMADDL\n", v);
+    if (ppu_log_on) printf("WRITE8(%02X) to VMADDL\n", v);
     ppu.VMADDL = v;
     ppu.vram_addr = (ppu.VMADDH << 8) | ppu.VMADDL;
     ppu.vram_addr &= 0x7FFF;
@@ -1208,7 +1214,7 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
     // printf("ppu.vram_addr=%04X\n", ppu.vram_addr);
   } else
   if (addr == 0x2117 /* VMADDH */) {
-    printf("WRITE8(%02X) to VMADDH\n", v);
+    if (ppu_log_on) printf("WRITE8(%02X) to VMADDH\n", v);
     ppu.VMADDH = v;
     ppu.vram_addr = (ppu.VMADDH << 8) | ppu.VMADDL;
     ppu.vram_addr &= 0x7FFF;
