@@ -21,182 +21,253 @@ __CALL_ADDRESS:
   add rsp, 32
   mov rcx, r12
   and rcx, 0xFFFFFF
-  cmp rcx, 0x808000
-  jne .next_0
-  jmp Label_808000
-.next_0:
-  cmp rcx, 0x808100
-  jne .next_1
-  jmp Label_808100
-.next_1:
-  cmp rcx, 0x808200
-  jne .next_2
-  jmp Label_808200
-.next_2:
-  cmp rcx, 0x808300
-  jne .next_3
-  jmp Label_808300
-.next_3:
+  cmp rcx, 0x808800
+  jae .hi_0
+  cmp rcx, 0x80831C
+  jae .hi_1
+  cmp rcx, 0x808120
+  jae .hi_2
+  cmp rcx, 0x808114
+  jae .hi_3
   cmp rcx, 0x808000
   jne .next_4
   jmp Label_808000
 .next_4:
-  cmp rcx, 0x808114
+  cmp rcx, 0x808100
   jne .next_5
-  jmp Label_808114
+  jmp Label_808100
 .next_5:
-  cmp rcx, 0x808118
+  jmp .miss_3
+.hi_3:
+  cmp rcx, 0x808114
   jne .next_6
-  jmp Label_808118
+  jmp Label_808114
 .next_6:
-  cmp rcx, 0x80811C
+  cmp rcx, 0x808118
   jne .next_7
-  jmp Label_80811C
+  jmp Label_808118
 .next_7:
-  cmp rcx, 0x808120
+  cmp rcx, 0x80811C
   jne .next_8
-  jmp Label_808120
+  jmp Label_80811C
 .next_8:
-  cmp rcx, 0x808314
-  jne .next_9
-  jmp Label_808314
-.next_9:
-  cmp rcx, 0x808318
+.miss_3:
+  jmp .miss_2
+.hi_2:
+  cmp rcx, 0x808300
+  jae .hi_9
+  cmp rcx, 0x808120
   jne .next_10
-  jmp Label_808318
+  jmp Label_808120
 .next_10:
-  cmp rcx, 0x80831C
+  cmp rcx, 0x808200
   jne .next_11
-  jmp Label_80831C
+  jmp Label_808200
 .next_11:
-  cmp rcx, 0x808320
+  jmp .miss_9
+.hi_9:
+  cmp rcx, 0x808300
   jne .next_12
-  jmp Label_808320
+  jmp Label_808300
 .next_12:
-  cmp rcx, 0x808400
+  cmp rcx, 0x808314
   jne .next_13
-  jmp Label_808400
+  jmp Label_808314
 .next_13:
-  cmp rcx, 0x808514
+  cmp rcx, 0x808318
   jne .next_14
-  jmp Label_808514
+  jmp Label_808318
 .next_14:
-  cmp rcx, 0x808518
-  jne .next_15
-  jmp Label_808518
-.next_15:
+.miss_9:
+.miss_2:
+  jmp .miss_1
+.hi_1:
   cmp rcx, 0x80851C
-  jne .next_16
-  jmp Label_80851C
-.next_16:
-  cmp rcx, 0x808520
+  jae .hi_15
+  cmp rcx, 0x808400
+  jae .hi_16
+  cmp rcx, 0x80831C
   jne .next_17
-  jmp Label_808520
+  jmp Label_80831C
 .next_17:
-  cmp rcx, 0x808714
+  cmp rcx, 0x808320
   jne .next_18
-  jmp Label_808714
+  jmp Label_808320
 .next_18:
-  cmp rcx, 0x808718
+  jmp .miss_16
+.hi_16:
+  cmp rcx, 0x808400
   jne .next_19
-  jmp Label_808718
+  jmp Label_808400
 .next_19:
-  cmp rcx, 0x80871C
+  cmp rcx, 0x808514
   jne .next_20
-  jmp Label_80871C
+  jmp Label_808514
 .next_20:
-  cmp rcx, 0x808720
+  cmp rcx, 0x808518
   jne .next_21
-  jmp Label_808720
+  jmp Label_808518
 .next_21:
-  cmp rcx, 0x808800
-  jne .next_22
-  jmp Label_808800
-.next_22:
-  cmp rcx, 0x808814
+.miss_16:
+  jmp .miss_15
+.hi_15:
+  cmp rcx, 0x808718
+  jae .hi_22
+  cmp rcx, 0x80851C
   jne .next_23
-  jmp Label_808814
+  jmp Label_80851C
 .next_23:
-  cmp rcx, 0x808818
+  cmp rcx, 0x808520
   jne .next_24
-  jmp Label_808818
+  jmp Label_808520
 .next_24:
-  cmp rcx, 0x80881C
+  cmp rcx, 0x808714
   jne .next_25
-  jmp Label_80881C
+  jmp Label_808714
 .next_25:
-  cmp rcx, 0x808820
+  jmp .miss_22
+.hi_22:
+  cmp rcx, 0x808718
   jne .next_26
-  jmp Label_808820
+  jmp Label_808718
 .next_26:
-  cmp rcx, 0x808914
+  cmp rcx, 0x80871C
   jne .next_27
-  jmp Label_808914
+  jmp Label_80871C
 .next_27:
-  cmp rcx, 0x808918
+  cmp rcx, 0x808720
   jne .next_28
-  jmp Label_808918
+  jmp Label_808720
 .next_28:
-  cmp rcx, 0x80891C
-  jne .next_29
-  jmp Label_80891C
-.next_29:
-  cmp rcx, 0x808920
-  jne .next_30
-  jmp Label_808920
-.next_30:
-  cmp rcx, 0x808B14
-  jne .next_31
-  jmp Label_808B14
-.next_31:
-  cmp rcx, 0x808B18
-  jne .next_32
-  jmp Label_808B18
-.next_32:
+.miss_22:
+.miss_15:
+.miss_1:
+  jmp .miss_0
+.hi_0:
   cmp rcx, 0x808B1C
+  jae .hi_29
+  cmp rcx, 0x808914
+  jae .hi_30
+  cmp rcx, 0x808818
+  jae .hi_31
+  cmp rcx, 0x808800
+  jne .next_32
+  jmp Label_808800
+.next_32:
+  cmp rcx, 0x808814
   jne .next_33
-  jmp Label_808B1C
+  jmp Label_808814
 .next_33:
-  cmp rcx, 0x808B20
+  jmp .miss_31
+.hi_31:
+  cmp rcx, 0x808818
   jne .next_34
-  jmp Label_808B20
+  jmp Label_808818
 .next_34:
-  cmp rcx, 0x808C00
+  cmp rcx, 0x80881C
   jne .next_35
-  jmp Label_808C00
+  jmp Label_80881C
 .next_35:
-  cmp rcx, 0x808D14
+  cmp rcx, 0x808820
   jne .next_36
-  jmp Label_808D14
+  jmp Label_808820
 .next_36:
-  cmp rcx, 0x808D18
-  jne .next_37
-  jmp Label_808D18
-.next_37:
-  cmp rcx, 0x808D1C
+.miss_31:
+  jmp .miss_30
+.hi_30:
+  cmp rcx, 0x808920
+  jae .hi_37
+  cmp rcx, 0x808914
   jne .next_38
-  jmp Label_808D1C
+  jmp Label_808914
 .next_38:
-  cmp rcx, 0x808D20
+  cmp rcx, 0x808918
   jne .next_39
-  jmp Label_808D20
+  jmp Label_808918
 .next_39:
-  cmp rcx, 0x808F14
+  cmp rcx, 0x80891C
   jne .next_40
-  jmp Label_808F14
+  jmp Label_80891C
 .next_40:
-  cmp rcx, 0x808F18
+  jmp .miss_37
+.hi_37:
+  cmp rcx, 0x808920
   jne .next_41
-  jmp Label_808F18
+  jmp Label_808920
 .next_41:
-  cmp rcx, 0x808F1C
+  cmp rcx, 0x808B14
   jne .next_42
-  jmp Label_808F1C
+  jmp Label_808B14
 .next_42:
-  cmp rcx, 0x808F20
+  cmp rcx, 0x808B18
   jne .next_43
-  jmp Label_808F20
+  jmp Label_808B18
 .next_43:
+.miss_37:
+.miss_30:
+  jmp .miss_29
+.hi_29:
+  cmp rcx, 0x808D1C
+  jae .hi_44
+  cmp rcx, 0x808C00
+  jae .hi_45
+  cmp rcx, 0x808B1C
+  jne .next_46
+  jmp Label_808B1C
+.next_46:
+  cmp rcx, 0x808B20
+  jne .next_47
+  jmp Label_808B20
+.next_47:
+  jmp .miss_45
+.hi_45:
+  cmp rcx, 0x808C00
+  jne .next_48
+  jmp Label_808C00
+.next_48:
+  cmp rcx, 0x808D14
+  jne .next_49
+  jmp Label_808D14
+.next_49:
+  cmp rcx, 0x808D18
+  jne .next_50
+  jmp Label_808D18
+.next_50:
+.miss_45:
+  jmp .miss_44
+.hi_44:
+  cmp rcx, 0x808F18
+  jae .hi_51
+  cmp rcx, 0x808D1C
+  jne .next_52
+  jmp Label_808D1C
+.next_52:
+  cmp rcx, 0x808D20
+  jne .next_53
+  jmp Label_808D20
+.next_53:
+  cmp rcx, 0x808F14
+  jne .next_54
+  jmp Label_808F14
+.next_54:
+  jmp .miss_51
+.hi_51:
+  cmp rcx, 0x808F18
+  jne .next_55
+  jmp Label_808F18
+.next_55:
+  cmp rcx, 0x808F1C
+  jne .next_56
+  jmp Label_808F1C
+.next_56:
+  cmp rcx, 0x808F20
+  jne .next_57
+  jmp Label_808F20
+.next_57:
+.miss_51:
+.miss_44:
+.miss_29:
+.miss_0:
   mov rdx, rbx
   call __JUMP_FAILED
 

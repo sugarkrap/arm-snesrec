@@ -303,7 +303,7 @@ static void a_jump(ECond c, const char *fmt, ...)
 {
 	va_list ap;
 	a_tick(1);
-	printf("\t%s ", c == EC_EQ ? "beq" : c == EC_NE ? "bne" : "b");
+	printf("\t%s ", c == EC_EQ ? "beq" : c == EC_NE ? "bne" : c == EC_AE ? "bhs" : "b");
 	va_start(ap, fmt);
 	a_put_label(fmt, ap);
 	va_end(ap);

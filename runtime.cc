@@ -106,6 +106,20 @@ int ROM_OFFSET = 0; // 0 or 512, nothing else
 IO io;
 PPU ppu;
 DMA dma;
+/*
+ * There is no SPC700. These four ports are all a game sees of it.
+ *
+ * 0xAA/0xBB is the SPC700 boot ROM's ready signature, which is why a fixed
+ * stub gets past the FIRST phase of a handshake. What it cannot do is the
+ * second: the IPL protocol has the CPU write a value and spin until the SPC
+ * echoes it back, so a constant leaves the game in that spin loop forever --
+ * which is exactly where recompiled FF6 sat, on the title screen.
+ *
+ * Echoing writes back satisfies the echo-wait without emulating anything.
+ * This is a stub, not an APU: it gets a game past the handshake, and any
+ * routine that depends on the SPC actually doing something will still fail.
+ */
+uint8_t apu_port[4] = { 0xAA, 0xBB, 0x00, 0x00 };
 int APUIO0 = 0xAA; // For some SMW tests
 int APUIO1 = 0xBB; // 
 uint32_t framebuf[SNES_WIDTH * SNES_HEIGHT];
@@ -762,11 +776,8 @@ extern "C" uint8_t __READ8(uint32_t addr)
   if (addr == 0x213F /* STAT78 */) {
     return ppu.STAT78;
   } else
-  if (addr == 0x2140 /* APUIO0 */) {
-    return APUIO0;
-  } else
-  if (addr == 0x2141 /* APUIO1 */) {
-    return APUIO1;
+  if (addr >= 0x2140 && addr <= 0x2143 /* APUIO0-3 */) {
+    return apu_port[addr - 0x2140];
   } else
   if (addr == 0x4214 /* RDDIVL */) {
     return io.RDDIVL;
@@ -871,6 +882,13 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
   // if (offset == 0x210D)
     // printf("__WRITE8(addr=0x%06X, value=0x%02X)\n", addr, v);
   
+  /* APU ports: echo the write back so the IPL handshake's echo-wait completes.
+   * See apu_port's definition for why a constant is not enough. */
+  if (offset >= 0x2140 && offset <= 0x2143) {
+    apu_port[offset - 0x2140] = v;
+    return;
+  }
+
   if (write8_sram_HiROM(addr, v)) {
     return;
   } else

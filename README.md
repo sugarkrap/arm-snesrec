@@ -141,8 +141,14 @@ Stated plainly so nobody rediscovers these the hard way:
   boot: 11,417 instructions of a 4 MB ROM. Everything outside it has no
   generated code and dispatches to `__JUMP_FAILED`. This is the central
   limitation of the approach, not a bug.
-- **No SPC700, so no audio.** Games need their audio-handshake routines
-  short-circuited to run at all. Inherited from upstream.
+- **No SPC700, and this is the current blocker -- not trace coverage.**
+  Recompiled FF6 renders its title screen and then stops advancing. It is not
+  running out of traced code: `__JUMP_FAILED` prints and exits, and the binary
+  runs hundreds of frames without it. The APU stub was improved from constants
+  to echoing writes (a constant provably cannot satisfy the IPL handshake's
+  echo-wait), which did **not** unblock it either. Getting further needs a real
+  SPC700, or the game's audio waits patched out -- which is what upstream means
+  by "short-circuited". That is a substantial piece of work, not a stub tweak.
 - **Traces come from a separately instrumented emulator** and are not included.
   `tests/gen_fixture.py` synthesises one for testing the recompiler, but it is
   not a real program and cannot be executed.

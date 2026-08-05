@@ -193,7 +193,7 @@ static void x_set_eq_sym(const char *sym)
 static void x_jump(ECond c, const char *fmt, ...)
 {
 	va_list ap;
-	printf("  %s ", c == EC_EQ ? "je" : c == EC_NE ? "jne" : "jmp");
+	printf("  %s ", c == EC_EQ ? "je" : c == EC_NE ? "jne" : c == EC_AE ? "jae" : "jmp");
 	va_start(ap, fmt);
 	vprintf(fmt, ap);
 	va_end(ap);

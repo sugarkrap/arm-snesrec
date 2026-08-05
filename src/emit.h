@@ -59,7 +59,10 @@ typedef enum {
 typedef enum { EW8 = 1, EW16 = 2, EW24 = 3, EW32 = 4, EW64 = 8 } EWidth;
 
 typedef enum { EA_ADD, EA_SUB, EA_AND, EA_OR, EA_XOR, EA_SHL, EA_SHR } EAlu;
-typedef enum { EC_ALWAYS, EC_EQ, EC_NE } ECond;
+/* EC_AE is an UNSIGNED above-or-equal, used by the dispatch binary search.
+ * Addresses are unsigned and can exceed 0x7FFFFFFF, so a signed compare would
+ * order them wrongly. */
+typedef enum { EC_ALWAYS, EC_EQ, EC_NE, EC_AE } ECond;
 
 typedef struct EmitOps {
 	const char *name;
