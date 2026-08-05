@@ -17,8 +17,6 @@ task build_game
 
 task build_recomp
 	print Building SNES Recompiler...
-	cmd $(CXX) -o recomp recomp.cc $(GAME_OBJ)
-
-task recomp_game
+        cmd $(CXX) -O2 -I src -o recomp src/*.cc
 	print Reassembling game trace...
 	cmd recomp $(GAME_TRACE) $(GAME_ROM) > $(GAME_ASM)
