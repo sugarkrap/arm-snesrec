@@ -75,6 +75,14 @@ typedef struct EmitOps {
 	void (*alu_imm)(EAlu op, VReg d, uint32_t imm);
 	void (*alu_reg)(EAlu op, VReg d, VReg s);
 	void (*cmp_imm)(VReg a, uint32_t imm);
+
+	/* Compare a guest-state symbol directly against a constant. x86 does this
+	 * in one instruction against memory; ARM must load first. Kept as its own
+	 * primitive rather than load_sym + cmp_imm so the x86 form stays a single
+	 * instruction and neither backend has to clobber a virtual register to
+	 * test a flag. Every conditional branch uses it: cmp byte [rel Z_Flag], 0 */
+	void (*cmp_sym_imm)(const char *sym, uint32_t imm, EWidth w);
+
 	/* store 1 into sym (a byte) if the preceding cmp_imm compared equal, else
 	 * store 0. Used for BIT #imm, which sets only Z from a value that never
 	 * gets written back anywhere else. */

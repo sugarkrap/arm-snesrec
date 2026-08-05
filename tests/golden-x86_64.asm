@@ -41,18 +41,162 @@ __CALL_ADDRESS:
   jne .next_4
   jmp Label_808000
 .next_4:
-  cmp rcx, 0x808400
+  cmp rcx, 0x808114
   jne .next_5
-  jmp Label_808400
+  jmp Label_808114
 .next_5:
-  cmp rcx, 0x808800
+  cmp rcx, 0x808118
   jne .next_6
-  jmp Label_808800
+  jmp Label_808118
 .next_6:
-  cmp rcx, 0x808C00
+  cmp rcx, 0x80811C
   jne .next_7
-  jmp Label_808C00
+  jmp Label_80811C
 .next_7:
+  cmp rcx, 0x808120
+  jne .next_8
+  jmp Label_808120
+.next_8:
+  cmp rcx, 0x808314
+  jne .next_9
+  jmp Label_808314
+.next_9:
+  cmp rcx, 0x808318
+  jne .next_10
+  jmp Label_808318
+.next_10:
+  cmp rcx, 0x80831C
+  jne .next_11
+  jmp Label_80831C
+.next_11:
+  cmp rcx, 0x808320
+  jne .next_12
+  jmp Label_808320
+.next_12:
+  cmp rcx, 0x808400
+  jne .next_13
+  jmp Label_808400
+.next_13:
+  cmp rcx, 0x808514
+  jne .next_14
+  jmp Label_808514
+.next_14:
+  cmp rcx, 0x808518
+  jne .next_15
+  jmp Label_808518
+.next_15:
+  cmp rcx, 0x80851C
+  jne .next_16
+  jmp Label_80851C
+.next_16:
+  cmp rcx, 0x808520
+  jne .next_17
+  jmp Label_808520
+.next_17:
+  cmp rcx, 0x808714
+  jne .next_18
+  jmp Label_808714
+.next_18:
+  cmp rcx, 0x808718
+  jne .next_19
+  jmp Label_808718
+.next_19:
+  cmp rcx, 0x80871C
+  jne .next_20
+  jmp Label_80871C
+.next_20:
+  cmp rcx, 0x808720
+  jne .next_21
+  jmp Label_808720
+.next_21:
+  cmp rcx, 0x808800
+  jne .next_22
+  jmp Label_808800
+.next_22:
+  cmp rcx, 0x808814
+  jne .next_23
+  jmp Label_808814
+.next_23:
+  cmp rcx, 0x808818
+  jne .next_24
+  jmp Label_808818
+.next_24:
+  cmp rcx, 0x80881C
+  jne .next_25
+  jmp Label_80881C
+.next_25:
+  cmp rcx, 0x808820
+  jne .next_26
+  jmp Label_808820
+.next_26:
+  cmp rcx, 0x808914
+  jne .next_27
+  jmp Label_808914
+.next_27:
+  cmp rcx, 0x808918
+  jne .next_28
+  jmp Label_808918
+.next_28:
+  cmp rcx, 0x80891C
+  jne .next_29
+  jmp Label_80891C
+.next_29:
+  cmp rcx, 0x808920
+  jne .next_30
+  jmp Label_808920
+.next_30:
+  cmp rcx, 0x808B14
+  jne .next_31
+  jmp Label_808B14
+.next_31:
+  cmp rcx, 0x808B18
+  jne .next_32
+  jmp Label_808B18
+.next_32:
+  cmp rcx, 0x808B1C
+  jne .next_33
+  jmp Label_808B1C
+.next_33:
+  cmp rcx, 0x808B20
+  jne .next_34
+  jmp Label_808B20
+.next_34:
+  cmp rcx, 0x808C00
+  jne .next_35
+  jmp Label_808C00
+.next_35:
+  cmp rcx, 0x808D14
+  jne .next_36
+  jmp Label_808D14
+.next_36:
+  cmp rcx, 0x808D18
+  jne .next_37
+  jmp Label_808D18
+.next_37:
+  cmp rcx, 0x808D1C
+  jne .next_38
+  jmp Label_808D1C
+.next_38:
+  cmp rcx, 0x808D20
+  jne .next_39
+  jmp Label_808D20
+.next_39:
+  cmp rcx, 0x808F14
+  jne .next_40
+  jmp Label_808F14
+.next_40:
+  cmp rcx, 0x808F18
+  jne .next_41
+  jmp Label_808F18
+.next_41:
+  cmp rcx, 0x808F1C
+  jne .next_42
+  jmp Label_808F1C
+.next_42:
+  cmp rcx, 0x808F20
+  jne .next_43
+  jmp Label_808F20
+.next_43:
   mov rdx, rbx
   call __JUMP_FAILED
 
@@ -1254,28 +1398,32 @@ Label_808100:
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808114
+  cmp byte [rel N_Flag], 0
+  je Label_808114
   ; -- 808104 --
   mov r12, 0x808104
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808118
+  cmp byte [rel N_Flag], 0
+  je Label_808118
   ; -- 808108 --
   mov r12, 0x808108
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 80811C
+  cmp byte [rel N_Flag], 0
+  je Label_80811C
   ; -- 80810C --
   mov r12, 0x80810C
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808120
+  cmp byte [rel N_Flag], 0
+  je Label_808120
   ; -- 808110 --
   mov r12, 0x808110
   sub rsp, 32
@@ -1300,6 +1448,9 @@ Label_808100:
   mov word [rel regA], cx
   call __UpdateNZ_A16
   add qword [rel CycleCount], 5
+
+  global Label_808114
+Label_808114:
   ; -- 808114 --
   mov r12, 0x808114
   sub rsp, 32
@@ -1325,6 +1476,9 @@ Label_808100:
   mov word [rel regA], cx
   call __UpdateNZ_A16
   add qword [rel CycleCount], 5
+
+  global Label_808118
+Label_808118:
   ; -- 808118 --
   mov r12, 0x808118
   sub rsp, 32
@@ -1349,6 +1503,9 @@ Label_808100:
   mov byte [rel regA], cl
   call __UpdateNZ_A8
   add qword [rel CycleCount], 4
+
+  global Label_80811C
+Label_80811C:
   ; -- 80811C --
   mov r12, 0x80811C
   sub rsp, 32
@@ -1374,6 +1531,9 @@ Label_808100:
   mov byte [rel regA], cl
   call __UpdateNZ_A8
   add qword [rel CycleCount], 4
+
+  global Label_808120
+Label_808120:
   ; -- 808120 --
   mov r12, 0x808120
   sub rsp, 32
@@ -3484,28 +3644,32 @@ Label_808300:
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808314
+  cmp byte [rel N_Flag], 1
+  je Label_808314
   ; -- 808304 --
   mov r12, 0x808304
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808318
+  cmp byte [rel N_Flag], 1
+  je Label_808318
   ; -- 808308 --
   mov r12, 0x808308
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 80831C
+  cmp byte [rel N_Flag], 1
+  je Label_80831C
   ; -- 80830C --
   mov r12, 0x80830C
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808320
+  cmp byte [rel N_Flag], 1
+  je Label_808320
   ; -- 808310 --
   mov r12, 0x808310
   sub rsp, 32
@@ -3530,6 +3694,9 @@ Label_808300:
   mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 7
+
+  global Label_808314
+Label_808314:
   ; -- 808314 --
   mov r12, 0x808314
   sub rsp, 32
@@ -3555,6 +3722,9 @@ Label_808300:
   mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 7
+
+  global Label_808318
+Label_808318:
   ; -- 808318 --
   mov r12, 0x808318
   sub rsp, 32
@@ -3579,6 +3749,9 @@ Label_808300:
   mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 6
+
+  global Label_80831C
+Label_80831C:
   ; -- 80831C --
   mov r12, 0x80831C
   sub rsp, 32
@@ -3604,6 +3777,9 @@ Label_808300:
   mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 6
+
+  global Label_808320
+Label_808320:
   ; -- 808320 --
   mov r12, 0x808320
   sub rsp, 32
@@ -5611,28 +5787,32 @@ Label_808400:
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808514
+  cmp byte [rel V_Flag], 0
+  je Label_808514
   ; -- 808504 --
   mov r12, 0x808504
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808518
+  cmp byte [rel V_Flag], 0
+  je Label_808518
   ; -- 808508 --
   mov r12, 0x808508
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 80851C
+  cmp byte [rel V_Flag], 0
+  je Label_80851C
   ; -- 80850C --
   mov r12, 0x80850C
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808520
+  cmp byte [rel V_Flag], 0
+  je Label_808520
   ; -- 808510 --
   mov r12, 0x808510
   sub rsp, 32
@@ -5657,6 +5837,9 @@ Label_808400:
   mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 7
+
+  global Label_808514
+Label_808514:
   ; -- 808514 --
   mov r12, 0x808514
   sub rsp, 32
@@ -5682,6 +5865,9 @@ Label_808400:
   mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 7
+
+  global Label_808518
+Label_808518:
   ; -- 808518 --
   mov r12, 0x808518
   sub rsp, 32
@@ -5706,6 +5892,9 @@ Label_808400:
   mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 6
+
+  global Label_80851C
+Label_80851C:
   ; -- 80851C --
   mov r12, 0x80851C
   sub rsp, 32
@@ -5731,6 +5920,9 @@ Label_808400:
   mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 6
+
+  global Label_808520
+Label_808520:
   ; -- 808520 --
   mov r12, 0x808520
   sub rsp, 32
@@ -7807,28 +7999,32 @@ Label_808400:
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808714
+  cmp byte [rel V_Flag], 1
+  je Label_808714
   ; -- 808704 --
   mov r12, 0x808704
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808718
+  cmp byte [rel V_Flag], 1
+  je Label_808718
   ; -- 808708 --
   mov r12, 0x808708
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 80871C
+  cmp byte [rel V_Flag], 1
+  je Label_80871C
   ; -- 80870C --
   mov r12, 0x80870C
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808720
+  cmp byte [rel V_Flag], 1
+  je Label_808720
   ; -- 808710 --
   mov r12, 0x808710
   sub rsp, 32
@@ -7855,6 +8051,9 @@ Label_808400:
   add rsp, 32
   mov word [rel regA], ax
   add qword [rel CycleCount], 6
+
+  global Label_808714
+Label_808714:
   ; -- 808714 --
   mov r12, 0x808714
   sub rsp, 32
@@ -7882,6 +8081,9 @@ Label_808400:
   add rsp, 32
   mov word [rel regA], ax
   add qword [rel CycleCount], 7
+
+  global Label_808718
+Label_808718:
   ; -- 808718 --
   mov r12, 0x808718
   sub rsp, 32
@@ -7908,6 +8110,9 @@ Label_808400:
   add rsp, 32
   mov byte [rel regA], al
   add qword [rel CycleCount], 5
+
+  global Label_80871C
+Label_80871C:
   ; -- 80871C --
   mov r12, 0x80871C
   sub rsp, 32
@@ -7935,6 +8140,9 @@ Label_808400:
   add rsp, 32
   mov byte [rel regA], al
   add qword [rel CycleCount], 6
+
+  global Label_808720
+Label_808720:
   ; -- 808720 --
   mov r12, 0x808720
   sub rsp, 32
@@ -8996,28 +9204,28 @@ Label_808800:
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 3
-  ; Never branches to 808814
+  jmp Label_808814
   ; -- 808804 --
   mov r12, 0x808804
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 3
-  ; Never branches to 808818
+  jmp Label_808818
   ; -- 808808 --
   mov r12, 0x808808
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 3
-  ; Never branches to 80881C
+  jmp Label_80881C
   ; -- 80880C --
   mov r12, 0x80880C
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 3
-  ; Never branches to 808820
+  jmp Label_808820
   ; -- 808810 --
   mov r12, 0x808810
   sub rsp, 32
@@ -9040,6 +9248,9 @@ Label_808800:
   call __WRITE16
   add rsp, 32
   add qword [rel CycleCount], 4
+
+  global Label_808814
+Label_808814:
   ; -- 808814 --
   mov r12, 0x808814
   sub rsp, 32
@@ -9063,6 +9274,9 @@ Label_808800:
   call __WRITE16
   add rsp, 32
   add qword [rel CycleCount], 4
+
+  global Label_808818
+Label_808818:
   ; -- 808818 --
   mov r12, 0x808818
   sub rsp, 32
@@ -9086,6 +9300,9 @@ Label_808800:
   call __WRITE8
   add rsp, 32
   add qword [rel CycleCount], 3
+
+  global Label_80881C
+Label_80881C:
   ; -- 80881C --
   mov r12, 0x80881C
   sub rsp, 32
@@ -9110,6 +9327,9 @@ Label_808800:
   call __WRITE8
   add rsp, 32
   add qword [rel CycleCount], 3
+
+  global Label_808820
+Label_808820:
   ; -- 808820 --
   mov r12, 0x808820
   sub rsp, 32
@@ -9788,28 +10008,32 @@ Label_808800:
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808914
+  cmp byte [rel C_Flag], 0
+  je Label_808914
   ; -- 808904 --
   mov r12, 0x808904
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808918
+  cmp byte [rel C_Flag], 0
+  je Label_808918
   ; -- 808908 --
   mov r12, 0x808908
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 80891C
+  cmp byte [rel C_Flag], 0
+  je Label_80891C
   ; -- 80890C --
   mov r12, 0x80890C
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808920
+  cmp byte [rel C_Flag], 0
+  je Label_808920
   ; -- 808910 --
   mov r12, 0x808910
   sub rsp, 32
@@ -9831,6 +10055,9 @@ Label_808800:
   call __WRITE16
   add rsp, 32
   add qword [rel CycleCount], 4
+
+  global Label_808914
+Label_808914:
   ; -- 808914 --
   mov r12, 0x808914
   sub rsp, 32
@@ -9853,6 +10080,9 @@ Label_808800:
   call __WRITE16
   add rsp, 32
   add qword [rel CycleCount], 4
+
+  global Label_808918
+Label_808918:
   ; -- 808918 --
   mov r12, 0x808918
   sub rsp, 32
@@ -9875,6 +10105,9 @@ Label_808800:
   call __WRITE8
   add rsp, 32
   add qword [rel CycleCount], 3
+
+  global Label_80891C
+Label_80891C:
   ; -- 80891C --
   mov r12, 0x80891C
   sub rsp, 32
@@ -9898,6 +10131,9 @@ Label_808800:
   call __WRITE8
   add rsp, 32
   add qword [rel CycleCount], 3
+
+  global Label_808920
+Label_808920:
   ; -- 808920 --
   mov r12, 0x808920
   sub rsp, 32
@@ -11570,28 +11806,32 @@ Label_808800:
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808B14
+  cmp byte [rel C_Flag], 1
+  je Label_808B14
   ; -- 808B04 --
   mov r12, 0x808B04
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808B18
+  cmp byte [rel C_Flag], 1
+  je Label_808B18
   ; -- 808B08 --
   mov r12, 0x808B08
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808B1C
+  cmp byte [rel C_Flag], 1
+  je Label_808B1C
   ; -- 808B0C --
   mov r12, 0x808B0C
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808B20
+  cmp byte [rel C_Flag], 1
+  je Label_808B20
   ; -- 808B10 --
   mov r12, 0x808B10
   sub rsp, 32
@@ -11615,6 +11855,9 @@ Label_808800:
   mov word [rel regA], ax
   call __UpdateNZ_A16
   add qword [rel CycleCount], 6
+
+  global Label_808B14
+Label_808B14:
   ; -- 808B14 --
   mov r12, 0x808B14
   sub rsp, 32
@@ -11639,6 +11882,9 @@ Label_808800:
   mov word [rel regA], ax
   call __UpdateNZ_A16
   add qword [rel CycleCount], 6
+
+  global Label_808B18
+Label_808B18:
   ; -- 808B18 --
   mov r12, 0x808B18
   sub rsp, 32
@@ -11662,6 +11908,9 @@ Label_808800:
   mov byte [rel regA], al
   call __UpdateNZ_A8
   add qword [rel CycleCount], 5
+
+  global Label_808B1C
+Label_808B1C:
   ; -- 808B1C --
   mov r12, 0x808B1C
   sub rsp, 32
@@ -11686,6 +11935,9 @@ Label_808800:
   mov byte [rel regA], al
   call __UpdateNZ_A8
   add qword [rel CycleCount], 5
+
+  global Label_808B20
+Label_808B20:
   ; -- 808B20 --
   mov r12, 0x808B20
   sub rsp, 32
@@ -13595,28 +13847,32 @@ Label_808C00:
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808D14
+  cmp byte [rel Z_Flag], 0
+  je Label_808D14
   ; -- 808D04 --
   mov r12, 0x808D04
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808D18
+  cmp byte [rel Z_Flag], 0
+  je Label_808D18
   ; -- 808D08 --
   mov r12, 0x808D08
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808D1C
+  cmp byte [rel Z_Flag], 0
+  je Label_808D1C
   ; -- 808D0C --
   mov r12, 0x808D0C
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808D20
+  cmp byte [rel Z_Flag], 0
+  je Label_808D20
   ; -- 808D10 --
   mov r12, 0x808D10
   sub rsp, 32
@@ -13642,6 +13898,9 @@ Label_808C00:
   call __COMPARE16
   add rsp, 32
   add qword [rel CycleCount], 7
+
+  global Label_808D14
+Label_808D14:
   ; -- 808D14 --
   mov r12, 0x808D14
   sub rsp, 32
@@ -13668,6 +13927,9 @@ Label_808C00:
   call __COMPARE16
   add rsp, 32
   add qword [rel CycleCount], 7
+
+  global Label_808D18
+Label_808D18:
   ; -- 808D18 --
   mov r12, 0x808D18
   sub rsp, 32
@@ -13693,6 +13955,9 @@ Label_808C00:
   call __COMPARE8
   add rsp, 32
   add qword [rel CycleCount], 6
+
+  global Label_808D1C
+Label_808D1C:
   ; -- 808D1C --
   mov r12, 0x808D1C
   sub rsp, 32
@@ -13719,6 +13984,9 @@ Label_808C00:
   call __COMPARE8
   add rsp, 32
   add qword [rel CycleCount], 6
+
+  global Label_808D20
+Label_808D20:
   ; -- 808D20 --
   mov r12, 0x808D20
   sub rsp, 32
@@ -15803,28 +16071,32 @@ Label_808C00:
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808F14
+  cmp byte [rel Z_Flag], 1
+  je Label_808F14
   ; -- 808F04 --
   mov r12, 0x808F04
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808F18
+  cmp byte [rel Z_Flag], 1
+  je Label_808F18
   ; -- 808F08 --
   mov r12, 0x808F08
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808F1C
+  cmp byte [rel Z_Flag], 1
+  je Label_808F1C
   ; -- 808F0C --
   mov r12, 0x808F0C
   sub rsp, 32
   call __CPUSync
   add rsp, 32
   add qword [rel CycleCount], 2
-  ; Never branches to 808F20
+  cmp byte [rel Z_Flag], 1
+  je Label_808F20
   ; -- 808F10 --
   mov r12, 0x808F10
   sub rsp, 32
@@ -15851,6 +16123,9 @@ Label_808C00:
   add rsp, 32
   mov word [rel regA], ax
   add qword [rel CycleCount], 6
+
+  global Label_808F14
+Label_808F14:
   ; -- 808F14 --
   mov r12, 0x808F14
   sub rsp, 32
@@ -15878,6 +16153,9 @@ Label_808C00:
   add rsp, 32
   mov word [rel regA], ax
   add qword [rel CycleCount], 6
+
+  global Label_808F18
+Label_808F18:
   ; -- 808F18 --
   mov r12, 0x808F18
   sub rsp, 32
@@ -15904,6 +16182,9 @@ Label_808C00:
   add rsp, 32
   mov byte [rel regA], al
   add qword [rel CycleCount], 5
+
+  global Label_808F1C
+Label_808F1C:
   ; -- 808F1C --
   mov r12, 0x808F1C
   sub rsp, 32
@@ -15931,6 +16212,9 @@ Label_808C00:
   add rsp, 32
   mov byte [rel regA], al
   add qword [rel CycleCount], 5
+
+  global Label_808F20
+Label_808F20:
   ; -- 808F20 --
   mov r12, 0x808F20
   sub rsp, 32

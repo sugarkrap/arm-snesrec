@@ -166,6 +166,19 @@ static void a_alu_reg(EAlu op, VReg d, VReg s)
 	printf("\t%s %s, %s, %s\n", alu_mnem(op), R[d], R[d], R[s]);
 }
 
+static void a_cmp_sym_imm(const char *sym, uint32_t imm, EWidth w)
+{
+	a_tick(4);
+	/* ip holds the loaded value; the address scratch is dead once the load has
+	 * happened, so it is reused for the constant. Routing the constant through
+	 * ldr= keeps this correct for values outside ARM's 8-bit-rotated immediate
+	 * range, even though the flag compares that use it today are only 0 or 1. */
+	printf("\tldr " ADDR_SCRATCH ", =%s\n", sym);
+	printf("\t%s ip, [" ADDR_SCRATCH "]\n", ld_mnem(w));
+	printf("\tldr " ADDR_SCRATCH ", =0x%X\n", imm);
+	printf("\tcmp ip, " ADDR_SCRATCH "\n");
+}
+
 static void a_cmp_imm(VReg a, uint32_t imm)
 {
 	a_tick(2);
@@ -378,6 +391,7 @@ const EmitOps emit_armv5 = {
 	a_alu_imm,
 	a_alu_reg,
 	a_cmp_imm,
+	a_cmp_sym_imm,
 	a_set_eq_sym,
 	a_jump,
 	a_call_sym,

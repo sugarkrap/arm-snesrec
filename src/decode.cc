@@ -3275,9 +3275,9 @@ void decode_65C816(CodeAddr ca)
     uint32_t absolute = ca.pc & 0xFF0000 | p;
     ADD_CYCLES(3);
     if (is_routines(absolute)) {
-      E->raw("  jmp Label_%06X\n", absolute);
+      E->jump(EC_ALWAYS, "Label_%06X", absolute);
     } else {
-      E->raw("  ; Never branches to %06X\n", absolute);
+      E->comment("Never branches to %06X", absolute);
     }
   } else
   if (op == 0x82) { // brl rel (long)
@@ -3287,9 +3287,9 @@ void decode_65C816(CodeAddr ca)
     uint32_t absolute = ca.pc & 0xFF0000 | p;
     ADD_CYCLES(4);
     if (is_routines(absolute)) {
-      E->raw("  jmp Label_%06X\n", absolute);
+      E->jump(EC_ALWAYS, "Label_%06X", absolute);
     } else {
-      E->raw("  ; Never branches to %06X\n", absolute);
+      E->comment("Never branches to %06X", absolute);
     }
   } else
   if (op == 0xD0) { // BNE Rel
@@ -3299,10 +3299,10 @@ void decode_65C816(CodeAddr ca)
     uint32_t absolute = ca.pc & 0xFF0000 | p;
     ADD_CYCLES(2);
     if (is_routines(absolute)) {
-      E->raw("  cmp byte [rel Z_Flag], 0\n");
-      E->raw("  je Label_%06X\n", absolute);
+      E->cmp_sym_imm("Z_Flag", 0, EW8);
+      E->jump(EC_EQ, "Label_%06X", absolute);
     } else {
-      E->raw("  ; Never branches to %06X\n", absolute);
+      E->comment("Never branches to %06X", absolute);
     }
   } else
   if (op == 0xF0) { // BEQ Rel
@@ -3312,10 +3312,10 @@ void decode_65C816(CodeAddr ca)
     uint32_t absolute = ca.pc & 0xFF0000 | p;
     ADD_CYCLES(2);
     if (is_routines(absolute)) {
-      E->raw("  cmp byte [rel Z_Flag], 1\n");
-      E->raw("  je Label_%06X\n", absolute);
+      E->cmp_sym_imm("Z_Flag", 1, EW8);
+      E->jump(EC_EQ, "Label_%06X", absolute);
     } else {
-      E->raw("  ; Never branches to %06X\n", absolute);
+      E->comment("Never branches to %06X", absolute);
     }
   } else
   if (op == 0x90) { // BCC Rel
@@ -3325,10 +3325,10 @@ void decode_65C816(CodeAddr ca)
     uint32_t absolute = ca.pc & 0xFF0000 | p;
     ADD_CYCLES(2);
     if (is_routines(absolute)) {
-      E->raw("  cmp byte [rel C_Flag], 0\n");
-      E->raw("  je Label_%06X\n", absolute);
+      E->cmp_sym_imm("C_Flag", 0, EW8);
+      E->jump(EC_EQ, "Label_%06X", absolute);
     } else {
-      E->raw("  ; Never branches to %06X\n", absolute);
+      E->comment("Never branches to %06X", absolute);
     }
   } else
   if (op == 0xB0) { // BCS Rel
@@ -3338,10 +3338,10 @@ void decode_65C816(CodeAddr ca)
     uint32_t absolute = ca.pc & 0xFF0000 | p;
     ADD_CYCLES(2);
     if (is_routines(absolute)) {
-      E->raw("  cmp byte [rel C_Flag], 1\n");
-      E->raw("  je Label_%06X\n", absolute);
+      E->cmp_sym_imm("C_Flag", 1, EW8);
+      E->jump(EC_EQ, "Label_%06X", absolute);
     } else {
-      E->raw("  ; Never branches to %06X\n", absolute);
+      E->comment("Never branches to %06X", absolute);
     }
   } else
   if (op == 0x30) { // BMI Rel
@@ -3351,10 +3351,10 @@ void decode_65C816(CodeAddr ca)
     uint32_t absolute = ca.pc & 0xFF0000 | p;
     ADD_CYCLES(2);
     if (is_routines(absolute)) {
-      E->raw("  cmp byte [rel N_Flag], 1\n");
-      E->raw("  je Label_%06X\n", absolute);
+      E->cmp_sym_imm("N_Flag", 1, EW8);
+      E->jump(EC_EQ, "Label_%06X", absolute);
     } else {
-      E->raw("  ; Never branches to %06X\n", absolute);
+      E->comment("Never branches to %06X", absolute);
     }
   } else
   if (op == 0x10) { // BPL Rel
@@ -3364,10 +3364,10 @@ void decode_65C816(CodeAddr ca)
     uint32_t absolute = ca.pc & 0xFF0000 | p;
     ADD_CYCLES(2);
     if (is_routines(absolute)) {
-      E->raw("  cmp byte [rel N_Flag], 0\n");
-      E->raw("  je Label_%06X\n", absolute);
+      E->cmp_sym_imm("N_Flag", 0, EW8);
+      E->jump(EC_EQ, "Label_%06X", absolute);
     } else {
-      E->raw("  ; Never branches to %06X\n", absolute);
+      E->comment("Never branches to %06X", absolute);
     }
   } else
   if (op == 0x50) { // BVC Rel
@@ -3377,10 +3377,10 @@ void decode_65C816(CodeAddr ca)
     uint32_t absolute = ca.pc & 0xFF0000 | p;
     ADD_CYCLES(2);
     if (is_routines(absolute)) {
-      E->raw("  cmp byte [rel V_Flag], 0\n");
-      E->raw("  je Label_%06X\n", absolute);
+      E->cmp_sym_imm("V_Flag", 0, EW8);
+      E->jump(EC_EQ, "Label_%06X", absolute);
     } else {
-      E->raw("  ; Never branches to %06X\n", absolute);
+      E->comment("Never branches to %06X", absolute);
     }
   } else
   if (op == 0x70) { // BVS Rel
@@ -3390,10 +3390,10 @@ void decode_65C816(CodeAddr ca)
     uint32_t absolute = ca.pc & 0xFF0000 | p;
     ADD_CYCLES(2);
     if (is_routines(absolute)) {
-      E->raw("  cmp byte [rel V_Flag], 1\n");
-      E->raw("  je Label_%06X\n", absolute);
+      E->cmp_sym_imm("V_Flag", 1, EW8);
+      E->jump(EC_EQ, "Label_%06X", absolute);
     } else {
-      E->raw("  ; Never branches to %06X\n", absolute);
+      E->comment("Never branches to %06X", absolute);
     }
   } else
   if (op == 0xA9) { // lda #imm

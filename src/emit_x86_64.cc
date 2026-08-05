@@ -117,6 +117,11 @@ static void x_alu_reg(EAlu op, VReg d, VReg s)
 	printf("  %s %s, %s\n", alu_mnem(op), R64[d], R64[s]);
 }
 
+static void x_cmp_sym_imm(const char *sym, uint32_t imm, EWidth w)
+{
+	printf("  cmp %s [rel %s], %u\n", width_kw(w), sym, imm);
+}
+
 static void x_cmp_imm(VReg a, uint32_t imm)
 {
 	printf("  cmp %s, 0x%X\n", R64[a], imm);
@@ -197,6 +202,7 @@ const EmitOps emit_x86_64 = {
 	x_alu_imm,
 	x_alu_reg,
 	x_cmp_imm,
+	x_cmp_sym_imm,
 	x_set_eq_sym,
 	x_jump,
 	x_call_sym,
