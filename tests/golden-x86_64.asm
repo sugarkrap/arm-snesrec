@@ -7917,7 +7917,7 @@ Label_808400:
   sub rsp, 32
   call __READ16
   add rsp, 32
- mov rcx, rax
+  mov rcx, rax
   movzx rdx, word [rel regA]
   sub rsp, 32
   call __ADC16
@@ -7942,7 +7942,7 @@ Label_808400:
   sub rsp, 32
   call __READ16
   add rsp, 32
- mov rcx, rax
+  mov rcx, rax
   movzx rdx, word [rel regA]
   sub rsp, 32
   call __ADC16
