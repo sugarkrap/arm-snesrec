@@ -125,6 +125,15 @@ uint8_t apu_port[4] = { 0xAA, 0xBB, 0x00, 0x00 };
  * SNESREC_IOSTATS, dumped at exit. One array increment per IO read. */
 unsigned long io_read_hist[0x10000];
 unsigned long nmi_raised = 0;
+unsigned long rdnmi_hi = 0;   /* $4210 reads that returned bit7 set */
+
+/* Ring of the last writes to $4200 (NMITIMEN). The register ends up holding
+ * $01 -- NMI disabled -- and the question is whether the game ever enables it
+ * and then turns it back off, or never enables it at all. The sequence answers
+ * that; a single final value cannot. */
+#define NMITIMEN_LOG 32
+uint8_t nmitimen_log[NMITIMEN_LOG];
+unsigned long nmitimen_writes = 0;
 int io_stats_on = 0;
 int APUIO0 = 0xAA; // For some SMW tests
 int APUIO1 = 0xBB; // 
@@ -213,7 +222,17 @@ void dump_io_stats(void)
   printf("  io_NMITIMEN = $%02X  (bit7 = NMI enabled: %s)\n",
          io_NMITIMEN, (io_NMITIMEN & 0x80) ? "YES" : "NO");
   printf("  NMIs raised  = %lu\n", nmi_raised);
+  printf("  $4210 reads returning bit7 SET = %lu\n", rdnmi_hi);
   printf("  inNMI        = %d\n", inNMI);
+  printf("  $4200 writes = %lu, last %d values:", nmitimen_writes,
+         (int)(nmitimen_writes < NMITIMEN_LOG ? nmitimen_writes : NMITIMEN_LOG));
+  {
+    unsigned long n = nmitimen_writes < NMITIMEN_LOG ? nmitimen_writes : NMITIMEN_LOG;
+    unsigned long st = nmitimen_writes - n;
+    for (unsigned long j = st; j < nmitimen_writes; j++)
+      printf(" %02X", nmitimen_log[j % NMITIMEN_LOG]);
+    printf("\n");
+  }
   printf("\n=== IO read histogram (top 12) ===\n");
   while (shown < 12) {
     int bi = -1; best = 0;
@@ -829,6 +848,7 @@ extern "C" uint8_t __READ8(uint32_t addr)
   } else
   if (addr == 0x4210 /* RDNMI */) {
     uint8_t rdnmi = io_RDNMI;
+    if (io_stats_on && (rdnmi & 0x80)) rdnmi_hi++;
     io_RDNMI &= 0x7F;
     return rdnmi;
   } else
@@ -939,6 +959,10 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
   }
   // ------------ MMIO Registers -----------
   if (addr == 0x4200 /* NMITIMEN */) {
+    if (io_stats_on) {
+      nmitimen_log[nmitimen_writes % NMITIMEN_LOG] = v;
+      nmitimen_writes++;
+    }
     io_NMITIMEN = v;
     // printf("WROTE %02X TO NMITIMEN\n", v);
   } else
