@@ -405,7 +405,8 @@ extern "C" void Render(void)
   if (dbr_at) {
     register unsigned long r12v asm("r12");
     if ((r12v & 0xFFFFFF) == dbr_at && dbr_hits++ < 8)
-      fprintf(stderr, "DBRAT %06lX  DBR=%02X\n", r12v & 0xFFFFFF, regDBR);
+      fprintf(stderr, "REGAT %06lX A=%04X X=%04X Y=%04X S=%04X DP=%04X DBR=%02X\n",
+              r12v & 0xFFFFFF, regA, regX, regY, regS, regDP, regDBR);
   }
   if (pclog && pclog_left) {
     register unsigned long r12v asm("r12");
