@@ -391,6 +391,10 @@ void dump_io_stats(void)
   for (int h = 0x2100; h <= 0x213F; ++h)
     if (io_write_hist[h])
       printf("  $%04X  %lu\n", h, io_write_hist[h]);
+  printf("\n=== CPU register WRITES by OFFSET ($4200-$4380) ===\n");
+  for (int h = 0x4200; h <= 0x4380; ++h)
+    if (io_write_hist[h])
+      printf("  $%04X  %lu\n", h, io_write_hist[h]);
   printf("\n=== IO read histogram (top 12) ===\n");
   while (shown < 12) {
     int bi = -1; best = 0;
@@ -1024,35 +1028,39 @@ extern "C" uint8_t __READ8(uint32_t addr)
   uint8_t bank = (addr & 0xFF0000) >> 16;
   uint16_t offset = addr & 0xFFFF;
   uint32_t address = addr & 0xFFFFFF;
-  
+  /* Registers are mirrored into $00-$3F and $80-$BF; see __WRITE8. Reads had
+   * the same hole as writes. */
+  int io_bank = (bank < 0x40) || (bank >= 0x80 && bank < 0xC0);
+  uint32_t reg = io_bank ? offset : addr;
+
   // printf("__READ8(addr=%04X)\n", addr);
-  if (addr == 0x213E /* STAT77 */) {
+  if (reg == 0x213E /* STAT77 */) {
     return ppu.STAT77;
   } else
-  if (addr == 0x213F /* STAT78 */) {
+  if (reg == 0x213F /* STAT78 */) {
     return ppu.STAT78;
   } else
-  if (addr == 0x2180 /* WMDATA */) {
+  if (reg == 0x2180 /* WMDATA */) {
     uint8_t v = wram[wmadd & 0x1FFFF];
     wmadd = (wmadd + 1) & 0x1FFFF;
     return v;
   }
-  if (addr >= 0x2140 && addr <= 0x2143 /* APUIO0-3 */) {
-    return apu_in[addr - 0x2140];
+  if (io_bank && offset >= 0x2140 && offset <= 0x2143 /* APUIO0-3 */) {
+    return apu_in[offset - 0x2140];
   } else
-  if (addr == 0x4214 /* RDDIVL */) {
+  if (reg == 0x4214 /* RDDIVL */) {
     return io.RDDIVL;
   } else
-  if (addr == 0x4215 /* RDDIVH */) {
+  if (reg == 0x4215 /* RDDIVH */) {
     return io.RDDIVH;
   } else
-  if (addr == 0x4216 /* RDMPYL */) {
+  if (reg == 0x4216 /* RDMPYL */) {
     return io.RDMPYL;
   } else
-  if (addr == 0x4217 /* RDMPYH */) {
+  if (reg == 0x4217 /* RDMPYH */) {
     return io.RDMPYH;
   } else
-  if (addr == 0x4210 /* RDNMI */) {
+  if (reg == 0x4210 /* RDNMI */) {
     uint8_t rdnmi = io_RDNMI;
     if (io_stats_on && (rdnmi & 0x80)) {
       rdnmi_hi++; pending_bit7 = 1;
@@ -1064,13 +1072,13 @@ extern "C" uint8_t __READ8(uint32_t addr)
     io_RDNMI &= 0x7F;
     return rdnmi;
   } else
-  if (addr == 0x4212 /* HVBJOY */) {
+  if (reg == 0x4212 /* HVBJOY */) {
     return io.HVBJOY;
   } else
-  if (addr == 0x4219 /* JOY1H */) {
+  if (reg == 0x4219 /* JOY1H */) {
     return io.JOY1H;
   } else
-  if (addr == 0x4218 /* JOY1L */) {
+  if (reg == 0x4218 /* JOY1L */) {
     return io.JOY1L;
   }
   
@@ -1210,6 +1218,23 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
   uint8_t bank = (addr & 0xFF0000) >> 16;
   uint16_t offset = addr & 0xFFFF;
 
+  /*
+   * The register file is mirrored into banks $00-$3F and $80-$BF, and the
+   * comparisons below used to test the full 24-bit address -- so a store made
+   * with DBR in the $80-$BF half never matched and was dropped on the floor.
+   *
+   * It was not a rare path. Counting writes by OFFSET against writes the
+   * handlers actually saw, $420C took 142 and acted on 1: HDMAEN could
+   * therefore never be anything but zero, so no HDMA channel was ever
+   * enabled, which is why implementing HDMA changed almost nothing. The same
+   * hole silently swallowed writes to every PPU register whenever the game
+   * addressed them through the high mirror.
+   *
+   * Banks $40-$7D and $C0-$FF are ROM in HiROM and have no register window,
+   * so they keep the full address and fall through to the memory paths.
+   */
+  uint32_t reg = ((bank < 0x40) || (bank >= 0x80 && bank < 0xC0)) ? offset : addr;
+
   if (watch_addr && (addr & 0xFFFFFF) >= watch_addr &&
                     (addr & 0xFFFFFF) <  watch_addr + 16) {
     register unsigned long r12v asm("r12");
@@ -1308,7 +1333,7 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
     return;
   }
   // ------------ MMIO Registers -----------
-  if (addr == 0x4200 /* NMITIMEN */) {
+  if (reg == 0x4200 /* NMITIMEN */) {
     if (io_stats_on) {
       nmitimen_log[nmitimen_writes % NMITIMEN_LOG] = v;
       nmitimen_writes++;
@@ -1316,53 +1341,53 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
     io_NMITIMEN = v;
     // printf("WROTE %02X TO NMITIMEN\n", v);
   } else
-  if (addr == 0x4202 /* WRMPYA */) {
+  if (reg == 0x4202 /* WRMPYA */) {
     io.WRMPYA = v;
   } else
-  if (addr == 0x4203 /* WRMPYB */) {
+  if (reg == 0x4203 /* WRMPYB */) {
     io.WRMPYB = v;
     multiply_5A22(&io);
   } else
-  if (addr == 0x4204 /* WRDIVL */) {
+  if (reg == 0x4204 /* WRDIVL */) {
     io.WRDIVL = v;
   } else
-  if (addr == 0x4205 /* WRDIVH */) {
+  if (reg == 0x4205 /* WRDIVH */) {
     io.WRDIVH = v;
   } else
-  if (addr == 0x4206 /* WRDIVB */) {
+  if (reg == 0x4206 /* WRDIVB */) {
     io.WRDIVB = v;
     divide_5A22(&io);
   } else // ------------ PPU Registers ------------
-  if (addr == 0x2100 /* INIDISP */) {
+  if (reg == 0x2100 /* INIDISP */) {
     ppu.INIDISP = v;
   } else
-  if (addr == 0x2121 /* CGADD */) {
+  if (reg == 0x2121 /* CGADD */) {
     // printf("WRITE8(%02X) to CGADD\n", v);
     ppu.CGADD = v * 2;
   } else
-  if (addr == 0x2122 /* CGDATA */) {
+  if (reg == 0x2122 /* CGDATA */) {
     write_cgram(&ppu, value);
     // printf("WRITE8(%02X) to CGDATA\n", value & 0xFF);
   } else
-  if (addr == 0x2105 /* BGMODE */) {
+  if (reg == 0x2105 /* BGMODE */) {
     ppu.BGMODE = v;
   } else
-  if (addr == 0x2107 /* BG1SC */) {
+  if (reg == 0x2107 /* BG1SC */) {
     ppu.BG1SC = v;
   } else
-  if (addr == 0x2108 /* BG2SC */) {
+  if (reg == 0x2108 /* BG2SC */) {
     ppu.BG2SC = v;
   } else
-  if (addr == 0x2109 /* BG3SC */) {
+  if (reg == 0x2109 /* BG3SC */) {
     ppu.BG3SC = v;
   } else
-  if (addr == 0x210B /* BG12NBA */) {
+  if (reg == 0x210B /* BG12NBA */) {
     ppu.BG12NBA = v;
   } else
-  if (addr == 0x210C /* BG34NBA */) {
+  if (reg == 0x210C /* BG34NBA */) {
     ppu.BG34NBA = v;
   } else
-  if (addr == 0x210D /* BG1HOFS */) {
+  if (reg == 0x210D /* BG1HOFS */) {
     if (ppu.scroll_value) {
       ppu.BG1HOFS = ((v & 3) << 8) | (ppu.BG1HOFS & 0xFF);
     } else {
@@ -1370,7 +1395,7 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
     }
     ppu.scroll_value ^= 1;
   } else
-  if (addr == 0x210E /* BG1VOFS */) {
+  if (reg == 0x210E /* BG1VOFS */) {
     if (ppu.scroll_value) {
       ppu.BG1VOFS = ((v & 3) << 8) | (ppu.BG1VOFS & 0xFF);
     } else {
@@ -1378,7 +1403,7 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
     }
     ppu.scroll_value ^= 1;
   } else
-  if (addr == 0x210F /* BG2HOFS */) {
+  if (reg == 0x210F /* BG2HOFS */) {
     if (ppu.scroll_value) {
       ppu.BG2HOFS = ((v & 3) << 8) | (ppu.BG2HOFS & 0xFF);
     } else {
@@ -1386,7 +1411,7 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
     }
     ppu.scroll_value ^= 1;
   } else
-  if (addr == 0x2110 /* BG2VOFS */) {
+  if (reg == 0x2110 /* BG2VOFS */) {
     if (ppu.scroll_value) {
       ppu.BG2VOFS = ((v & 3) << 8) | (ppu.BG2VOFS & 0xFF);
     } else {
@@ -1394,39 +1419,39 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
     }
     ppu.scroll_value ^= 1;
   } else
-  if (addr == 0x2111 /* BG3HOFS */) {
+  if (reg == 0x2111 /* BG3HOFS */) {
     ppu.BG3HOFS = v;
     ppu.scroll_value ^= 1;
   } else
-  if (addr == 0x2112 /* BG3VOFS */) {
+  if (reg == 0x2112 /* BG3VOFS */) {
     ppu.BG3VOFS = v;
     ppu.scroll_value ^= 1;
   } else
-  if (addr == 0x2113 /* BG4HOFS */) {
+  if (reg == 0x2113 /* BG4HOFS */) {
     ppu.BG4HOFS = v;
     ppu.scroll_value ^= 1;
   } else
-  if (addr == 0x2114 /* BG4VOFS */) {
+  if (reg == 0x2114 /* BG4VOFS */) {
     ppu.BG4VOFS = v;
     ppu.scroll_value ^= 1;
   } else
-  if (addr == 0x2101 /* OBJSEL */) {
+  if (reg == 0x2101 /* OBJSEL */) {
     ppu.OBJSEL = v;
     // printf("ppu.OBJSEL=%02X\n", v);
   } else
-  if (addr == 0x2102 /* OAMADDL */) {
+  if (reg == 0x2102 /* OAMADDL */) {
     ppu.OAMADDL = v;
   } else
-  if (addr == 0x2103 /* OAMADDH */) {
+  if (reg == 0x2103 /* OAMADDH */) {
     ppu.OAMADDH = v;
   } else
-  if (addr == 0x2104 /* OAMDATA */) {
+  if (reg == 0x2104 /* OAMDATA */) {
     write_oam(&ppu, v);
   } else
-  if (addr == 0x2115 /* VMAIN */) {
+  if (reg == 0x2115 /* VMAIN */) {
     ppu.VMAIN = v;
   } else
-  if (addr == 0x2116 /* VMADDL */) {
+  if (reg == 0x2116 /* VMADDL */) {
     if (ppu_log_on) printf("WRITE8(%02X) to VMADDL\n", v);
     ppu.VMADDL = v;
     ppu.vram_addr = (ppu.VMADDH << 8) | ppu.VMADDL;
@@ -1434,7 +1459,7 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
     ppu.vram_addr *= 2;
     // printf("ppu.vram_addr=%04X\n", ppu.vram_addr);
   } else
-  if (addr == 0x2117 /* VMADDH */) {
+  if (reg == 0x2117 /* VMADDH */) {
     if (ppu_log_on) printf("WRITE8(%02X) to VMADDH\n", v);
     ppu.VMADDH = v;
     ppu.vram_addr = (ppu.VMADDH << 8) | ppu.VMADDL;
@@ -1442,31 +1467,31 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
     ppu.vram_addr *= 2;
     // printf("ppu.vram_addr=%04X\n", ppu.vram_addr);
   } else
-  if (addr == 0x212C /* TM */) {
+  if (reg == 0x212C /* TM */) {
     ppu.TM = v;
   } else
   /* Windows and colour math. FF6's title screen programs all of these; every
    * one used to fall through to nothing. */
-  if (addr == 0x2123 /* W12SEL  */) { ppu.W12SEL  = v; } else
-  if (addr == 0x2124 /* W34SEL  */) { ppu.W34SEL  = v; } else
-  if (addr == 0x2125 /* WOBJSEL */) { ppu.WOBJSEL = v; } else
-  if (addr == 0x2126 /* WH0     */) { ppu.WH0     = v; } else
-  if (addr == 0x2127 /* WH1     */) { ppu.WH1     = v; } else
-  if (addr == 0x2128 /* WH2     */) { ppu.WH2     = v; } else
-  if (addr == 0x2129 /* WH3     */) { ppu.WH3     = v; } else
-  if (addr == 0x212A /* WBGLOG  */) { ppu.WBGLOG  = v; } else
-  if (addr == 0x212B /* WOBJLOG */) { ppu.WOBJLOG = v; } else
-  if (addr == 0x212D /* TS      */) { ppu.TS      = v; } else
-  if (addr == 0x212E /* TMW     */) { ppu.TMW     = v; } else
-  if (addr == 0x212F /* TSW     */) { ppu.TSW     = v; } else
-  if (addr == 0x2130 /* CGWSEL  */) { ppu.CGWSEL  = v; } else
-  if (addr == 0x2131 /* CGADSUB */) { ppu.CGADSUB = v; } else
-  if (addr == 0x2132 /* COLDATA */) { ppu.COLDATA = v; } else
-  if (addr == 0x2118 /* VMDATAL */) {
+  if (reg == 0x2123 /* W12SEL  */) { ppu.W12SEL  = v; } else
+  if (reg == 0x2124 /* W34SEL  */) { ppu.W34SEL  = v; } else
+  if (reg == 0x2125 /* WOBJSEL */) { ppu.WOBJSEL = v; } else
+  if (reg == 0x2126 /* WH0     */) { ppu.WH0     = v; } else
+  if (reg == 0x2127 /* WH1     */) { ppu.WH1     = v; } else
+  if (reg == 0x2128 /* WH2     */) { ppu.WH2     = v; } else
+  if (reg == 0x2129 /* WH3     */) { ppu.WH3     = v; } else
+  if (reg == 0x212A /* WBGLOG  */) { ppu.WBGLOG  = v; } else
+  if (reg == 0x212B /* WOBJLOG */) { ppu.WOBJLOG = v; } else
+  if (reg == 0x212D /* TS      */) { ppu.TS      = v; } else
+  if (reg == 0x212E /* TMW     */) { ppu.TMW     = v; } else
+  if (reg == 0x212F /* TSW     */) { ppu.TSW     = v; } else
+  if (reg == 0x2130 /* CGWSEL  */) { ppu.CGWSEL  = v; } else
+  if (reg == 0x2131 /* CGADSUB */) { ppu.CGADSUB = v; } else
+  if (reg == 0x2132 /* COLDATA */) { ppu.COLDATA = v; } else
+  if (reg == 0x2118 /* VMDATAL */) {
     // printf("WRITE8(%02X) to VMDATAL\n", v);
     write_vram(&ppu, v, 0, (ppu.VMAIN & 0x80) == 0);
   } else
-  if (addr == 0x2119 /* VMDATAH */) {
+  if (reg == 0x2119 /* VMDATAH */) {
     // printf("WRITE8(%02X) to VMDATAH\n", v);
     write_vram(&ppu, v, 1, (ppu.VMAIN & 0x80) != 0);
   }
@@ -1476,7 +1501,7 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
   if (dma_log_on && (addr == 0x420B || addr == 0x420C ||
                      (addr >= 0x4300 && addr <= 0x437F)))
     fprintf(stderr, "DMAW %06X <- %02X\n", addr, v);
-  write_dma(&dma, addr, v);
+  write_dma(&dma, reg, v);
 }
 
 extern "C" void __WRITE16(uint32_t addr, uint32_t value)
