@@ -186,9 +186,14 @@ static void a_jump(ECond c, const char *fmt, ...)
 		a_ltorg();     /* safe: nothing falls through an unconditional b */
 }
 
+/* decode.cc reads a call's result out of VR_TMP -- true on x86_64 because rax
+ * is both VR_TMP and the return register, but AAPCS returns in r0 (VR_ARG0),
+ * not r2 (VR_TMP). Copy it over so the two backends agree; r2 is scratch, so
+ * clobbering it here is always safe even when the result goes unused. */
 static void a_call_sym(const char *sym)
 {
 	printf("\tbl %s\n", sym);
+	printf("\tmov r2, r0\n");
 }
 
 static void a_call_helper(const char *sym)
@@ -196,6 +201,7 @@ static void a_call_helper(const char *sym)
 	/* AAPCS needs no shadow space, so this is the same as a bare call. The
 	 * distinction is kept because Win64 does need it. */
 	printf("\tbl %s\n", sym);
+	printf("\tmov r2, r0\n");
 }
 
 static void a_ret(void)
