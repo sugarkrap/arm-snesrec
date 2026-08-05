@@ -172,6 +172,25 @@ unsigned long watch_addr = 0;
  * disagree about an `LDA abs` while holding identical memory, DBR is the
  * thing that differs. */
 unsigned long dbr_at = 0, dbr_hits = 0;
+/*
+ * $2180-$2183: the WRAM port. $2181-$2183 set a 17-bit WRAM address and
+ * $2180 reads/writes the byte there, auto-incrementing -- so a game can walk
+ * all of WRAM without burning a bank register on it.
+ *
+ * These were not implemented at all, which meant FF6's WRAM clear
+ *
+ *     C02976  LDX #$4000
+ *     C02979  STZ $2180      <- every one of these went nowhere
+ *     C0297C  DEX
+ *     ...     BNE
+ *
+ * silently did nothing. The recompiled binary ran the loop 0x4000 times and
+ * WRAM kept its fill byte, so a later `LDA $8000,X` read 0x55 where the
+ * interpreter read 0x00 and the two took opposite branches. Invisible to a
+ * watchpoint on the store address, because the byte lands at wmadd, not at
+ * $2180.
+ */
+uint32_t wmadd = 0;
 unsigned long apu_log_n = 0;
 
 /* Diagnostic: which IO register is the game spinning on? Enabled by
@@ -957,6 +976,11 @@ extern "C" uint8_t __READ8(uint32_t addr)
   if (addr == 0x213F /* STAT78 */) {
     return ppu.STAT78;
   } else
+  if (addr == 0x2180 /* WMDATA */) {
+    uint8_t v = wram[wmadd & 0x1FFFF];
+    wmadd = (wmadd + 1) & 0x1FFFF;
+    return v;
+  }
   if (addr >= 0x2140 && addr <= 0x2143 /* APUIO0-3 */) {
     return apu_in[addr - 0x2140];
   } else
@@ -1077,6 +1101,19 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
   // if (offset == 0x210D)
     // printf("__WRITE8(addr=0x%06X, value=0x%02X)\n", addr, v);
   
+  if (offset >= 0x2180 && offset <= 0x2183) {
+    switch (offset) {
+      case 0x2180:
+        wram[wmadd & 0x1FFFF] = v;
+        wmadd = (wmadd + 1) & 0x1FFFF;
+        break;
+      case 0x2181: wmadd = (wmadd & 0x1FF00) | v;              break;
+      case 0x2182: wmadd = (wmadd & 0x100FF) | ((uint32_t)v << 8);  break;
+      case 0x2183: wmadd = (wmadd & 0x0FFFF) | ((uint32_t)(v & 1) << 16); break;
+    }
+    return;
+  }
+
   /* APU ports: writes land in the CPU->APU latch, which is NOT the latch reads
    * come from. See apu_in's definition. */
   if (offset >= 0x2140 && offset <= 0x2143) {
