@@ -85,10 +85,20 @@ Stated plainly so nobody rediscovers these the hard way:
 - **The recompiler runs on Linux; the runtime does not.** `emu.cc` includes
   `windows.h` and links `-lwinmm -lgdi32`. Getting anything onto the Zaurus
   needs an fbdev/evdev runtime, which does not exist yet.
-- **The ARMv5 backend is partial.** Its emission primitives are implemented and
-  the ported subset assembles cleanly, but ~5.5k decoder sites still emit
-  `.error` markers instead of ARM, so the full output does not yet assemble.
-  `grep -c 'E->raw(' src/decode.cc` is the remaining work list.
+- **The ARMv5 backend emits ARM for essentially everything.** The decoder is
+  fully ported (0 `raw()` sites) and the output assembles: ~23.7k instructions
+  for the test fixture. Two `.error` markers remain, both in one place — the
+  `add rsp, 32` / `pop rax` pair that discards `__CPUSync`'s return frame so
+  the following jump becomes a tail-jump. AAPCS has no pushed return address
+  (`lr` holds it), and generated code has no prologue, so this needs the ARM
+  calling convention for generated code settled first. It is a design
+  decision, not a translation.
+- **The `in_wram()` self-modifying-code guard is unported**, and the fixture
+  does not reach it — every fixture PC is in ROM. It stays as `raw()` so a
+  WRAM trace fails loudly rather than silently emitting x86.
+- **Nothing has been run on ARM hardware.** "Assembles" is not "works": there
+  is no Linux/fbdev runtime yet (see `emu.cc` above), so the generated code has
+  never been executed.
 - **No SPC700, so no audio.** Games need their audio-handshake routines
   short-circuited to run at all. Inherited from upstream.
 - **Traces come from a separately instrumented emulator** and are not included.
