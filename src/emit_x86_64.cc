@@ -55,6 +55,10 @@ static void x_mov_reg_immw(VReg d, uint32_t imm, EWidth w)
 		printf("  mov %s, 0x%02X\n", R64[d], imm);
 	else if (w == EW16)
 		printf("  mov %s, 0x%04X\n", R64[d], imm);
+	else if (w == EW24)
+		printf("  mov %s, 0x%06X\n", R64[d], imm);
+	else if (w == EW32)
+		printf("  mov %s, 0x%08X\n", R64[d], imm);
 	else
 		printf("  mov %s, 0x%X\n", R64[d], imm);
 }

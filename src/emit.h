@@ -51,7 +51,12 @@ typedef enum {
 
 /* Access width for a guest-state symbol. The SNES register file mixes 8- and
  * 16-bit values and reads are always zero-extending. */
-typedef enum { EW8 = 1, EW16 = 2, EW32 = 4, EW64 = 8 } EWidth;
+/* Byte width of a value. EW24 exists because a SNES address is 24-bit: the
+ * original emitted those as "0x%06X", and without a width meaning "24-bit" a
+ * PC below 0x100000 would print unpadded and silently differ from the text the
+ * recompiler used to produce. The fixture's PCs are all >= 0x800000, so that
+ * discrepancy is invisible to the golden -- hence spelling it out here. */
+typedef enum { EW8 = 1, EW16 = 2, EW24 = 3, EW32 = 4, EW64 = 8 } EWidth;
 
 typedef enum { EA_ADD, EA_SUB, EA_AND, EA_OR, EA_XOR, EA_SHL, EA_SHR } EAlu;
 typedef enum { EC_ALWAYS, EC_EQ, EC_NE } ECond;
