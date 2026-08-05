@@ -11,6 +11,7 @@
 
 # Which platform backend to link into the runtime:
 #   fbdev  real Linux framebuffer (the device)
+#   sdl2   windowed, for running on a build host
 #   file   headless, frames written as PPM -- runs anywhere, including under
 #          qemu-arm on a build host, which is the only way to actually look at
 #          what the generated code draws
@@ -76,6 +77,12 @@ game: recomp arm-runtime
 # emulator. This is the fast way to check whether generated code is correct --
 # and its frames can be diffed against the ARM build's, which is a strong
 # cross-check since the two share nothing but the trace.
+# SDL2 needs its own flags; the other backends need none.
+ifeq ($(PLATFORM),sdl2)
+PLATFORM_CFLAGS := $(shell sdl2-config --cflags)
+PLATFORM_LIBS   := $(shell sdl2-config --libs)
+endif
+
 native: recomp
 	@test -n "$(TRACE)" -a -n "$(ROM)" || { echo "usage: make native TRACE=t ROM=r"; exit 1; }
 	./recomp --target x86_64-sysv $(TRACE) $(ROM) > generated-x86.s
@@ -86,8 +93,8 @@ native: recomp
 	fi
 	as --64 -o generated-x86.o generated-x86.s
 	$(CXX) $(CXXFLAGS) -I. -Iplatform -c -o runtime-x86.o runtime.cc
-	$(CXX) $(CXXFLAGS) -Iplatform -c -o platform-x86.o $(PLATFORM_SRC)
-	$(CXX) -no-pie -o snesrec-x86 generated-x86.o runtime-x86.o platform-x86.o
+	$(CXX) $(CXXFLAGS) $(PLATFORM_CFLAGS) -Iplatform -c -o platform-x86.o $(PLATFORM_SRC)
+	$(CXX) -no-pie -o snesrec-x86 generated-x86.o runtime-x86.o platform-x86.o $(PLATFORM_LIBS)
 	@echo "built ./snesrec-x86"
 
 clean:
