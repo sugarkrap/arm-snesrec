@@ -161,6 +161,11 @@ int apu_log_on = 0;                               /* SNESREC_APULOG diagnostic *
  * rather than deleted: it is the right diagnostic when a screen is wrong. */
 int ppu_log_on = 0;                               /* SNESREC_PPULOG diagnostic */
 int dma_log_on = 0;                               /* SNESREC_DMALOG diagnostic */
+/* SNESREC_WATCH=<hex addr>: log every write to a 16-byte window at that guest
+ * address, with the PC that did it. A statically recompiled binary can only
+ * execute WRAM code if the WRAM bytes match what was traced, so "who was
+ * supposed to write this, and did they" is a question that comes up a lot. */
+unsigned long watch_addr = 0;
 unsigned long apu_log_n = 0;
 
 /* Diagnostic: which IO register is the game spinning on? Enabled by
@@ -250,6 +255,8 @@ int main(int argc, char **argv)
   apu_log_on  = getenv("SNESREC_APULOG") ? 1 : 0;
   ppu_log_on  = getenv("SNESREC_PPULOG") ? 1 : 0;
   dma_log_on  = getenv("SNESREC_DMALOG") ? 1 : 0;
+  { const char *w = getenv("SNESREC_WATCH");
+    watch_addr = w && *w ? strtoul(w, NULL, 16) : 0; }
   { const char *pl = getenv("SNESREC_PCLOG");
     if (pl && *pl) {
       const char *n = getenv("SNESREC_PCLOG_MAX");
@@ -1025,7 +1032,14 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
   uint8_t v = value & 0xFF;
   uint8_t bank = (addr & 0xFF0000) >> 16;
   uint16_t offset = addr & 0xFFFF;
-  
+
+  if (watch_addr && (addr & 0xFFFFFF) >= watch_addr &&
+                    (addr & 0xFFFFFF) <  watch_addr + 16) {
+    register unsigned long r12v asm("r12");
+    fprintf(stderr, "WATCH %06X <- %02X (pc=%06lX)\n",
+            addr & 0xFFFFFF, v, r12v & 0xFFFFFF);
+  }
+
   // if (offset == 0x210D)
     // printf("__WRITE8(addr=0x%06X, value=0x%02X)\n", addr, v);
   
