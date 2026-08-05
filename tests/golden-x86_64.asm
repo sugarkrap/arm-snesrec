@@ -8997,6 +8997,7 @@ Label_808720:
   movzx rax, word [rel regX]
   add rcx, rax
   and rcx, 0xFFFF
+  or rcx, 0x800000
   sub rsp, 32
   call __READ16
   add rsp, 32
@@ -9015,6 +9016,7 @@ Label_808720:
   and rax, 0xFF
   add rcx, rax
   and rcx, 0xFFFF
+  or rcx, 0x800000
   sub rsp, 32
   call __READ16
   add rsp, 32
@@ -9032,6 +9034,7 @@ Label_808720:
   movzx rax, word [rel regX]
   add rcx, rax
   and rcx, 0xFFFF
+  or rcx, 0x800000
   sub rsp, 32
   call __READ16
   add rsp, 32
@@ -9050,6 +9053,7 @@ Label_808720:
   and rax, 0xFF
   add rcx, rax
   and rcx, 0xFFFF
+  or rcx, 0x800000
   sub rsp, 32
   call __READ16
   add rsp, 32
@@ -17053,6 +17057,7 @@ Label_808F20:
   movzx rax, word [rel regX]
   add rcx, rax
   and rcx, 0xFFFF
+  or rcx, 0x800000
   sub rsp, 32
   call __READ16
   add rsp, 32
@@ -17085,6 +17090,7 @@ Label_808F20:
   and rax, 0xFF
   add rcx, rax
   and rcx, 0xFFFF
+  or rcx, 0x800000
   sub rsp, 32
   call __READ16
   add rsp, 32
@@ -17116,6 +17122,7 @@ Label_808F20:
   movzx rax, word [rel regX]
   add rcx, rax
   and rcx, 0xFFFF
+  or rcx, 0x800000
   sub rsp, 32
   call __READ16
   add rsp, 32
@@ -17148,6 +17155,7 @@ Label_808F20:
   and rax, 0xFF
   add rcx, rax
   and rcx, 0xFFFF
+  or rcx, 0x800000
   sub rsp, 32
   call __READ16
   add rsp, 32

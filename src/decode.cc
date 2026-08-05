@@ -4223,6 +4223,14 @@ void decode_65C816(CodeAddr ca)
     E->mov_reg_immw(VR_ARG0, address, EW16);
     APPLY_IDX_OFFSET(VR_ARG0, VR_TMP, "regX");
     E->alu_imm(EA_AND, VR_ARG0, 0xFFFF);
+    /* The POINTER is fetched from the program bank, not bank $00. Masking to
+     * 0xFFFF and reading there sent the fetch into WRAM: FF6's
+     * `JMP ($06FE,X)` at $C50160 read $0006FE+X instead of $C506FE+X, got
+     * $FFFF back and died in __JUMP_FAILED. The bank was already being OR'd
+     * into the RESULT, which is also correct -- but it has to be applied to
+     * the fetch as well. (JMP (abs) / $6C genuinely does read bank $00, so
+     * that one is right as it stands.) */
+    E->alu_imm_w(EA_OR, VR_ARG0, ca.pc & 0xFF0000, EW24);
     CALL_FUNCTION_STK("__READ16");
     E->mov_reg_reg(VR_ARG0, VR_TMP);
     E->alu_imm_w(EA_OR, VR_ARG0, ca.pc & 0xFF0000, EW24);
@@ -4260,6 +4268,8 @@ void decode_65C816(CodeAddr ca)
     E->mov_reg_immw(VR_ARG0, address, EW16);
     APPLY_IDX_OFFSET(VR_ARG0, VR_TMP, "regX");
     E->alu_imm(EA_AND, VR_ARG0, 0xFFFF);
+    /* Same program-bank fetch rule as JMP (abs,X); see there. */
+    E->alu_imm_w(EA_OR, VR_ARG0, ca.pc & 0xFF0000, EW24);
     CALL_FUNCTION_STK("__READ16");
     E->mov_reg_immw(VR_ARG0, ca.pc & 0xFF0000, EW24);
     E->alu_reg(EA_OR, VR_ARG0, VR_TMP);
