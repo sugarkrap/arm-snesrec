@@ -152,6 +152,10 @@ DMA dma;
 uint8_t apu_in[4]  = { 0xAA, 0xBB, 0x00, 0x00 };  /* APU -> CPU: reads see this */
 uint8_t apu_out[4] = { 0x00, 0x00, 0x00, 0x00 };  /* CPU -> APU: writes land here */
 int ipl_busy = 0;                                 /* has the $CC kick happened? */
+uint8_t ipl_ctr = 0;                              /* next byte counter the IPL expects */
+int ipl_handover = 0;                             /* end kick echoed; driver about to start */
+int apu_log_on = 0;                               /* SNESREC_APULOG diagnostic */
+unsigned long apu_log_n = 0;
 
 /* Diagnostic: which IO register is the game spinning on? Enabled by
  * SNESREC_IOSTATS, dumped at exit. One array increment per IO read. */
@@ -237,6 +241,7 @@ int main(int argc, char **argv)
   fclose(f);
 
   io_stats_on = getenv("SNESREC_IOSTATS") ? 1 : 0;
+  apu_log_on  = getenv("SNESREC_APULOG") ? 1 : 0;
   { const char *pl = getenv("SNESREC_PCLOG");
     if (pl && *pl) {
       const char *n = getenv("SNESREC_PCLOG_MAX");
@@ -1020,12 +1025,45 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
    * come from. See apu_in's definition. */
   if (offset >= 0x2140 && offset <= 0x2143) {
     apu_out[offset - 0x2140] = v;
-    /* $CC on port 0 is the IPL's "begin upload" kick. Before it, the ready
-     * signature must stay readable; after it, port 0 echoes each byte counter
-     * so the per-byte echo-wait completes. */
+    if (apu_log_on && apu_log_n < 400000)
+      fprintf(stderr, "APUW %04X <- %02X  (pc=%06lX)\n", offset, v,
+              ({ register unsigned long r12v asm("r12"); r12v & 0xFFFFFF; })), apu_log_n++;
+    /* The IPL upload protocol, as observed on the port traffic rather than
+     * assumed:
+     *
+     *   $2142/$2143 <- target address
+     *   $2141 <- non-zero, $2140 <- $CC        begin transfer
+     *   $2141 <- data,     $2140 <- counter    one byte; counter 00,01,02...
+     *   $2141 <- 0,        $2140 <- <not next> end: run the uploaded driver
+     *
+     * The end kick is distinguishable only by the counter not following on --
+     * FF6 ends its upload with $2140 <- $13 where $10 would come next -- which
+     * is why the counter is tracked instead of echoing blindly. Checking
+     * $2141 only on that mismatch is what keeps a legitimate $00 DATA byte
+     * from being read as end-of-transfer.
+     *
+     * Once the driver is running it re-publishes the ready signature, so the
+     * game can call this whole routine again, and does: leaving ipl_busy
+     * latched forever put FF6 straight back into the $BBAA spin one scene
+     * later. */
     if (offset == 0x2140) {
-      if (ipl_busy)        apu_in[0] = v;
-      else if (v == 0xCC) { ipl_busy = 1; apu_in[0] = 0xCC; }
+      if (!ipl_busy) {
+        /* Deferred handover: the ready signature can only come back AFTER the
+         * game has seen the end kick's echo, because it spins on that echo at
+         * $C500EA before moving on. Publishing $AA/$BB at end-of-transfer
+         * instead of here overwrote the $13 it was waiting for and hung it
+         * there -- one stall EARLIER than the one being fixed. */
+        if (ipl_handover) { ipl_handover = 0; apu_in[0] = 0xAA; apu_in[1] = 0xBB; }
+        if (v == 0xCC) { ipl_busy = 1; ipl_ctr = 0; apu_in[0] = 0xCC; }
+        /* anything else: ignored, so the ready signature stays readable */
+      } else if (v == ipl_ctr) {
+        apu_in[0] = v; ipl_ctr++;              /* byte accepted */
+      } else if (apu_out[1] == 0) {
+        apu_in[0] = v;                         /* the end kick is echoed too */
+        ipl_busy = 0; ipl_handover = 1;        /* driver starts running */
+      } else {
+        ipl_ctr = 0; apu_in[0] = v;            /* a further block follows */
+      }
     }
     return;
   }
