@@ -8,6 +8,14 @@
 #
 # ARM_PREFIX points at a cross toolchain; the default is piko's.
 
+# Which platform backend to link into the runtime:
+#   fbdev  real Linux framebuffer (the device)
+#   file   headless, frames written as PPM -- runs anywhere, including under
+#          qemu-arm on a build host, which is the only way to actually look at
+#          what the generated code draws
+PLATFORM ?= fbdev
+PLATFORM_SRC := platform/platform_$(PLATFORM).cc
+
 ARM_PREFIX ?= $(HOME)/Code/piko/toolchain/x-tools/arm-unknown-linux-uclibcgnueabi/bin/arm-unknown-linux-uclibcgnueabi
 ARM_CXX    := $(ARM_PREFIX)-g++
 ARM_AS     := $(ARM_PREFIX)-as
@@ -34,13 +42,13 @@ check: recomp
 
 # Host build, still fbdev -- useful on a Linux desktop with a real /dev/fb0,
 # or pointed elsewhere with SNESREC_FB.
-runtime: runtime.cc platform/platform_fbdev.cc
+runtime: runtime.cc $(PLATFORM_SRC)
 	$(CXX) $(CXXFLAGS) -I. -Iplatform -c -o runtime.o runtime.cc
-	$(CXX) $(CXXFLAGS) -Iplatform -c -o platform.o platform/platform_fbdev.cc
+	$(CXX) $(CXXFLAGS) -Iplatform -c -o platform.o $(PLATFORM_SRC)
 
-arm-runtime: runtime.cc platform/platform_fbdev.cc
+arm-runtime: runtime.cc $(PLATFORM_SRC)
 	$(ARM_CXX) $(ARM_CFLAGS) -I. -Iplatform -c -o runtime-arm.o runtime.cc
-	$(ARM_CXX) $(ARM_CFLAGS) -Iplatform -c -o platform-arm.o platform/platform_fbdev.cc
+	$(ARM_CXX) $(ARM_CFLAGS) -Iplatform -c -o platform-arm.o $(PLATFORM_SRC)
 
 # Full pipeline: trace -> ARM assembly -> object -> statically linked binary.
 #

@@ -66,6 +66,18 @@ To go all the way to an ARM binary:
 make game TRACE=your.trace ROM=your.sfc     # -> ./snesrec-arm
 ```
 
+To test without hardware, build the headless backend and run it under qemu --
+frames come out as PPM, which is how the screenshot below was produced:
+
+```sh
+make game PLATFORM=file TRACE=t ROM=r
+SNESREC_OUT=/tmp/frames SNESREC_FRAMES=12 qemu-arm ./snesrec-arm r
+```
+
+`PLATFORM=fbdev` (default) targets the device, `file` is headless, `win32`
+keeps the original path. Traces come from PocketSNES built with `make TRACE=1`
+(see `trace/snes_trace.c` there).
+
 That refuses to build while any `.error` marker remains, listing exactly which
 sites block it. `ALLOW_UNPORTED=1` strips them and builds anyway, at the cost
 of a binary whose behaviour on those paths is undefined — useful for testing
@@ -115,11 +127,16 @@ Stated plainly so nobody rediscovers these the hard way:
 - **The `in_wram()` self-modifying-code guard is unported**, and the fixture
   does not reach it — every fixture PC is in ROM. It stays as `raw()` so a
   WRAM trace fails loudly rather than silently emitting x86.
-- **Nothing has been run on ARM hardware yet.** The pipeline does produce a
-  statically linked ARMv5 binary that starts under `qemu-arm`, loads a ROM and
-  probes the framebuffer. But no real ROM has been recompiled and run, and the
-  generated code's *behaviour* is still unverified -- only its ABI and linkage
-  are. Correct linkage is not correct emulation.
+- **It works, for as far as the trace goes.** Final Fantasy VI, traced on a
+  Zaurus and statically recompiled to ARMv5, renders its title screen
+  correctly under `qemu-arm` -- and the palette fade animates across frames,
+  so this is real execution rather than a single blit. The same binary runs on
+  the device (opens the w100 framebuffer, correct RGB565 format, burns CPU),
+  though the display there has not been visually confirmed.
+- **A trace only covers what it saw.** The FF6 trace above is ~2 minutes of
+  boot: 11,417 instructions of a 4 MB ROM. Everything outside it has no
+  generated code and dispatches to `__JUMP_FAILED`. This is the central
+  limitation of the approach, not a bug.
 - **No SPC700, so no audio.** Games need their audio-handshake routines
   short-circuited to run at all. Inherited from upstream.
 - **Traces come from a separately instrumented emulator** and are not included.
