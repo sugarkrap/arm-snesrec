@@ -250,10 +250,12 @@ int main(int argc, char **argv)
       E->raw("  cmp eax, 0x%08X\n", ca.ins);
       E->raw("  jne Label_%06X_skip%d\n", ca.pc, skips);
     }
-    E->raw("  mov r12, 0x%06X\n", ca.pc);
-    E->raw("  sub rsp, 32\n");
-    E->raw("  call __CPUSync\n");
-    E->raw("  add rsp, 32\n");
+    /* Per-instruction preamble: stash the guest PC where __CPUSync and the
+     * dispatch can find it, then sync. Emitted once per traced instruction,
+     * so on its own it accounted for ~4100 of the ARM backend's unported
+     * markers. */
+    E->mov_reg_immw(VR_SAVE, ca.pc, EW24);
+    CALL_FUNCTION_STK("__CPUSync");
     decode_65C816(ca);
     if (in_wram(ca.pc)) {
       printf("Label_%06X_skip%d:\n", ca.pc, skips);
