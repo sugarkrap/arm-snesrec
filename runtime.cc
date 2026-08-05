@@ -160,6 +160,7 @@ int apu_log_on = 0;                               /* SNESREC_APULOG diagnostic *
  * VRAM-address flood -- and paid for a printf per PPU address write. Gated
  * rather than deleted: it is the right diagnostic when a screen is wrong. */
 int ppu_log_on = 0;                               /* SNESREC_PPULOG diagnostic */
+int dma_log_on = 0;                               /* SNESREC_DMALOG diagnostic */
 unsigned long apu_log_n = 0;
 
 /* Diagnostic: which IO register is the game spinning on? Enabled by
@@ -248,6 +249,7 @@ int main(int argc, char **argv)
   io_stats_on = getenv("SNESREC_IOSTATS") ? 1 : 0;
   apu_log_on  = getenv("SNESREC_APULOG") ? 1 : 0;
   ppu_log_on  = getenv("SNESREC_PPULOG") ? 1 : 0;
+  dma_log_on  = getenv("SNESREC_DMALOG") ? 1 : 0;
   { const char *pl = getenv("SNESREC_PCLOG");
     if (pl && *pl) {
       const char *n = getenv("SNESREC_PCLOG_MAX");
@@ -1232,6 +1234,12 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
     // printf("WRITE8(%02X) to VMDATAH\n", v);
     write_vram(&ppu, v, 1, (ppu.VMAIN & 0x80) != 0);
   }
+  /* SNESREC_DMALOG: DMA register traffic. Answers "is DMA even running, and
+   * what B-bus target is it aiming at" -- which is how the WRAM routine at
+   * $7E5000 was shown NOT to arrive by DMA (no channel ever targets $2180). */
+  if (dma_log_on && (addr == 0x420B || addr == 0x420C ||
+                     (addr >= 0x4300 && addr <= 0x437F)))
+    fprintf(stderr, "DMAW %06X <- %02X\n", addr, v);
   write_dma(&dma, addr, v);
 }
 
