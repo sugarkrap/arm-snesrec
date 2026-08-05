@@ -41,19 +41,35 @@ fall back. Those are real constraints, not footnotes.
 
 ```
 src/            recompiler, split by concern
+platform/       host display/input backends (fbdev, win32)
 tests/          fixture generator + golden-output regression check
-emu.cc          runtime / emulation layer  (Win32 today -- see Status)
+runtime.cc      runtime / emulation layer (was emu.cc)
 snes.h          shared SNES definitions
 ```
+
+The recompiler and the runtime are separate programs and deliberately do not
+share a source directory -- a glob over both would drag `platform_win32.cc`
+into the recompiler build.
 
 ## Building and testing
 
 The recompiler is portable C++ and builds anywhere:
 
 ```sh
-g++ -O2 -I src -o recomp src/*.cc
-tests/check.sh
+make            # build the recompiler
+make check      # both regression gates
 ```
+
+To go all the way to an ARM binary:
+
+```sh
+make game TRACE=your.trace ROM=your.sfc     # -> ./snesrec-arm
+```
+
+That refuses to build while any `.error` marker remains, listing exactly which
+sites block it. `ALLOW_UNPORTED=1` strips them and builds anyway, at the cost
+of a binary whose behaviour on those paths is undefined — useful for testing
+the rest of the pipeline, not for running a game.
 
 `tests/check.sh` synthesises a trace exercising **255 of the 256 opcodes** in
 all four (M,X) width combinations, then runs two independent gates. Only
@@ -82,9 +98,12 @@ when none is present.
 
 Stated plainly so nobody rediscovers these the hard way:
 
-- **The recompiler runs on Linux; the runtime does not.** `emu.cc` includes
-  `windows.h` and links `-lwinmm -lgdi32`. Getting anything onto the Zaurus
-  needs an fbdev/evdev runtime, which does not exist yet.
+- **The runtime runs on Linux now.** `runtime.cc` names no host API; display,
+  input, timing and shutdown sit behind `platform/platform.h`. The fbdev
+  backend takes its pixel format from `FBIOGET_VSCREENINFO` rather than
+  assuming RGB565, and centres *and clips* -- the Zaurus's 240-wide portrait
+  panel is narrower than the SNES's 256, so part of the image genuinely does
+  not fit. Input is a raw terminal rather than evdev, so it works over SSH.
 - **The ARMv5 backend emits ARM for essentially everything.** The decoder is
   fully ported (0 `raw()` sites) and the output assembles: ~23.7k instructions
   for the test fixture. Two `.error` markers remain, both in one place — the
@@ -96,9 +115,11 @@ Stated plainly so nobody rediscovers these the hard way:
 - **The `in_wram()` self-modifying-code guard is unported**, and the fixture
   does not reach it — every fixture PC is in ROM. It stays as `raw()` so a
   WRAM trace fails loudly rather than silently emitting x86.
-- **Nothing has been run on ARM hardware.** "Assembles" is not "works": there
-  is no Linux/fbdev runtime yet (see `emu.cc` above), so the generated code has
-  never been executed.
+- **Nothing has been run on ARM hardware yet.** The pipeline does produce a
+  statically linked ARMv5 binary that starts under `qemu-arm`, loads a ROM and
+  probes the framebuffer. But no real ROM has been recompiled and run, and the
+  generated code's *behaviour* is still unverified -- only its ABI and linkage
+  are. Correct linkage is not correct emulation.
 - **No SPC700, so no audio.** Games need their audio-handshake routines
   short-circuited to run at all. Inherited from upstream.
 - **Traces come from a separately instrumented emulator** and are not included.

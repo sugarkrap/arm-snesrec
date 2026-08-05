@@ -1,0 +1,6 @@
+recomp
+*.o
+generated.s
+snesrec-arm
+tests/fixture.trace
+tests/fixture.rom

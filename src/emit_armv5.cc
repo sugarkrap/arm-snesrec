@@ -60,6 +60,10 @@ static void a_prologue(void)
 	printf("\t.text\n");
 	printf("\t.arch armv5te\n");
 	printf("\t.syntax unified\n");
+	/* Without this the linker assumes the object wants an executable stack
+	 * and warns; generated code needs no such thing. */
+	printf("\t.section .note.GNU-stack,\"\",%%progbits\n");
+	printf("\t.text\n");
 }
 
 static void a_put_label(const char *fmt, va_list ap);
