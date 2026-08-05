@@ -1850,7 +1850,7 @@ void draw_mode0(void)
       p %= 0xFFFE;
       uint16_t tiledata = *(uint16_t*)&ppu.vram[p];
       uint16_t tile = (tiledata & 0x3FF);
-      uint8_t palette = (tiledata >> 10) & 3;
+      uint8_t palette = (tiledata >> 10) & 7;
       uint8_t Hflip = (tiledata >> 14) & 1;
       
       draw_sprite_8x8_2bpp(
@@ -1882,7 +1882,7 @@ void draw_bg1(void)
       
       uint16_t tiledata = *(uint16_t*)&ppu.vram[bg1_base+offset];
       uint16_t tile = tiledata & 0x3FF;
-      uint8_t palette = (tiledata >> 10) & 3;
+      uint8_t palette = (tiledata >> 10) & 7;
       uint8_t Hflip = (tiledata >> 14) & 1;
       uint8_t Vflip = (tiledata >> 15) & 1;
       
@@ -1911,7 +1911,7 @@ void draw_bg2(void)
       
       uint16_t tiledata = *(uint16_t*)&ppu.vram[bg_base+offset];
       uint16_t tile = tiledata & 0x3FF;
-      uint8_t palette = (tiledata >> 10) & 3;
+      uint8_t palette = (tiledata >> 10) & 7;
       uint8_t Hflip = (tiledata >> 14) & 1;
       uint8_t Vflip = (tiledata >> 15) & 1;
       
@@ -1934,7 +1934,7 @@ void draw_bg3(void)
     for (int x = 0; x < 32; ++x) {
       uint16_t tiledata = *(uint16_t*)&ppu.vram[bg_base+(y*width+x)*2];
       uint16_t tile = tiledata & 0x3FF;
-      uint8_t palette = (tiledata >> 10) & 3;
+      uint8_t palette = (tiledata >> 10) & 7;
       uint8_t Hflip = (tiledata >> 14) & 1;
       uint8_t Vflip = (tiledata >> 15) & 1;
       
@@ -1965,7 +1965,7 @@ void draw_mode3(void)
       for (int x = 0; x < 32; ++x) {
         uint16_t tiledata = *(uint16_t*)&ppu.vram[bg1_base+(y*width+x)*2];
         uint16_t tile = tiledata & 0x3FF;
-        uint8_t palette = (tiledata >> 10) & 3;
+        uint8_t palette = (tiledata >> 10) & 7;
         uint8_t Hflip = (tiledata >> 14) & 1;
         uint8_t Vflip = (tiledata >> 15) & 1;
         
