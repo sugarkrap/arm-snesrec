@@ -2017,8 +2017,8 @@ Label_808100:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regA]
-  inc ax
+  movzx rax, word [rel regA]
+  add rax, 0x1
   mov word [rel regA], ax
   call __UpdateNZ_A16
   add qword [rel CycleCount], 2
@@ -2027,8 +2027,8 @@ Label_808100:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regA]
-  inc ax
+  movzx rax, word [rel regA]
+  add rax, 0x1
   mov word [rel regA], ax
   call __UpdateNZ_A16
   add qword [rel CycleCount], 2
@@ -2037,8 +2037,8 @@ Label_808100:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov al, byte [rel regA]
-  inc al
+  movzx rax, byte [rel regA]
+  add rax, 0x1
   mov byte [rel regA], al
   call __UpdateNZ_A8
   add qword [rel CycleCount], 2
@@ -2047,8 +2047,8 @@ Label_808100:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov al, byte [rel regA]
-  inc al
+  movzx rax, byte [rel regA]
+  add rax, 0x1
   mov byte [rel regA], al
   call __UpdateNZ_A8
   add qword [rel CycleCount], 2
@@ -2740,7 +2740,7 @@ Label_808200:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  movzx rcx, ax
+  mov rcx, rax
   sub rsp, 32
   call __BIT16
   add rsp, 32
@@ -2756,7 +2756,7 @@ Label_808200:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  movzx rcx, ax
+  mov rcx, rax
   sub rsp, 32
   call __BIT16
   add rsp, 32
@@ -2772,7 +2772,7 @@ Label_808200:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  movzx rcx, ax
+  mov rcx, rax
   sub rsp, 32
   call __BIT8
   add rsp, 32
@@ -2788,7 +2788,7 @@ Label_808200:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  movzx rcx, ax
+  mov rcx, rax
   sub rsp, 32
   call __BIT8
   add rsp, 32
@@ -3212,7 +3212,7 @@ Label_808200:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  movzx rcx, ax
+  mov rcx, rax
   sub rsp, 32
   call __BIT16
   add rsp, 32
@@ -3228,7 +3228,7 @@ Label_808200:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  movzx rcx, ax
+  mov rcx, rax
   sub rsp, 32
   call __BIT16
   add rsp, 32
@@ -3244,7 +3244,7 @@ Label_808200:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  movzx rcx, ax
+  mov rcx, rax
   sub rsp, 32
   call __BIT8
   add rsp, 32
@@ -3260,7 +3260,7 @@ Label_808200:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  movzx rcx, ax
+  mov rcx, rax
   sub rsp, 32
   call __BIT8
   add rsp, 32
@@ -3799,7 +3799,7 @@ Label_808300:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  movzx rcx, ax
+  mov rcx, rax
   sub rsp, 32
   call __BIT16
   add rsp, 32
@@ -3818,7 +3818,7 @@ Label_808300:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  movzx rcx, ax
+  mov rcx, rax
   sub rsp, 32
   call __BIT16
   add rsp, 32
@@ -3836,7 +3836,7 @@ Label_808300:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  movzx rcx, ax
+  mov rcx, rax
   sub rsp, 32
   call __BIT8
   add rsp, 32
@@ -3855,7 +3855,7 @@ Label_808300:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  movzx rcx, ax
+  mov rcx, rax
   sub rsp, 32
   call __BIT8
   add rsp, 32
@@ -4229,8 +4229,8 @@ Label_808300:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regA]
-  dec ax
+  movzx rax, word [rel regA]
+  sub rax, 0x1
   mov word [rel regA], ax
   call __UpdateNZ_A16
   add qword [rel CycleCount], 2
@@ -4239,8 +4239,8 @@ Label_808300:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regA]
-  dec ax
+  movzx rax, word [rel regA]
+  sub rax, 0x1
   mov word [rel regA], ax
   call __UpdateNZ_A16
   add qword [rel CycleCount], 2
@@ -4249,8 +4249,8 @@ Label_808300:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov al, byte [rel regA]
-  dec al
+  movzx rax, byte [rel regA]
+  sub rax, 0x1
   mov byte [rel regA], al
   call __UpdateNZ_A8
   add qword [rel CycleCount], 2
@@ -4259,8 +4259,8 @@ Label_808300:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov al, byte [rel regA]
-  dec al
+  movzx rax, byte [rel regA]
+  sub rax, 0x1
   mov byte [rel regA], al
   call __UpdateNZ_A8
   add qword [rel CycleCount], 2
@@ -9466,7 +9466,7 @@ Label_808800:
   movzx rcx, word [rel regA]
   mov rdx, 0x3412
   and rcx, rdx
-  cmp rcx, 0
+  cmp rcx, 0x0
   sete byte [rel Z_Flag]
   add qword [rel CycleCount], 3
   ; -- 808894 --
@@ -9477,7 +9477,7 @@ Label_808800:
   movzx rcx, word [rel regA]
   mov rdx, 0x3412
   and rcx, rdx
-  cmp rcx, 0
+  cmp rcx, 0x0
   sete byte [rel Z_Flag]
   add qword [rel CycleCount], 3
   ; -- 808898 --
@@ -9488,7 +9488,7 @@ Label_808800:
   movzx rcx, byte [rel regA]
   mov rdx, 0x12
   and rcx, rdx
-  cmp rcx, 0
+  cmp rcx, 0x0
   sete byte [rel Z_Flag]
   add qword [rel CycleCount], 2
   ; -- 80889C --
@@ -9499,7 +9499,7 @@ Label_808800:
   movzx rcx, byte [rel regA]
   mov rdx, 0x12
   and rcx, rdx
-  cmp rcx, 0
+  cmp rcx, 0x0
   sete byte [rel Z_Flag]
   add qword [rel CycleCount], 2
   ; -- 8088A0 --
@@ -12977,7 +12977,7 @@ Label_808C00:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  dec ax
+  sub rax, 0x1
   mov rcx, r12
   mov rdx, rax
   mov rbx, rax
@@ -13001,7 +13001,7 @@ Label_808C00:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  dec ax
+  sub rax, 0x1
   mov rcx, r12
   mov rdx, rax
   mov rbx, rax
@@ -13025,7 +13025,7 @@ Label_808C00:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  dec al
+  sub rax, 0x1
   mov rcx, r12
   mov rdx, rax
   mov rbx, rax
@@ -13049,7 +13049,7 @@ Label_808C00:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  dec al
+  sub rax, 0x1
   mov rcx, r12
   mov rdx, rax
   mov rbx, rax
@@ -13445,7 +13445,7 @@ Label_808C00:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  dec ax
+  sub rax, 0x1
   mov rcx, r12
   mov rdx, rax
   mov rbx, rax
@@ -13469,7 +13469,7 @@ Label_808C00:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  dec ax
+  sub rax, 0x1
   mov rcx, r12
   mov rdx, rax
   mov rbx, rax
@@ -13493,7 +13493,7 @@ Label_808C00:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  dec al
+  sub rax, 0x1
   mov rcx, r12
   mov rdx, rax
   mov rbx, rax
@@ -13517,7 +13517,7 @@ Label_808C00:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  dec al
+  sub rax, 0x1
   mov rcx, r12
   mov rdx, rax
   mov rbx, rax
@@ -14065,7 +14065,7 @@ Label_808C00:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  dec ax
+  sub rax, 0x1
   mov rcx, r12
   mov rdx, rax
   mov rbx, rax
@@ -14092,7 +14092,7 @@ Label_808C00:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  dec ax
+  sub rax, 0x1
   mov rcx, r12
   mov rdx, rax
   mov rbx, rax
@@ -14118,7 +14118,7 @@ Label_808C00:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  dec al
+  sub rax, 0x1
   mov rcx, r12
   mov rdx, rax
   mov rbx, rax
@@ -14145,7 +14145,7 @@ Label_808C00:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  dec al
+  sub rax, 0x1
   mov rcx, r12
   mov rdx, rax
   mov rbx, rax
@@ -14593,7 +14593,7 @@ Label_808C00:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  dec ax
+  sub rax, 0x1
   mov rcx, r12
   mov rdx, rax
   mov rbx, rax
@@ -14620,7 +14620,7 @@ Label_808C00:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  dec ax
+  sub rax, 0x1
   mov rcx, r12
   mov rdx, rax
   mov rbx, rax
@@ -14646,7 +14646,7 @@ Label_808C00:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  dec al
+  sub rax, 0x1
   mov rcx, r12
   mov rdx, rax
   mov rbx, rax
@@ -14673,7 +14673,7 @@ Label_808C00:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  dec al
+  sub rax, 0x1
   mov rcx, r12
   mov rdx, rax
   mov rbx, rax

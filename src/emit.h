@@ -75,6 +75,10 @@ typedef struct EmitOps {
 	void (*alu_imm)(EAlu op, VReg d, uint32_t imm);
 	void (*alu_reg)(EAlu op, VReg d, VReg s);
 	void (*cmp_imm)(VReg a, uint32_t imm);
+	/* store 1 into sym (a byte) if the preceding cmp_imm compared equal, else
+	 * store 0. Used for BIT #imm, which sets only Z from a value that never
+	 * gets written back anywhere else. */
+	void (*set_eq_sym)(const char *sym);
 
 	void (*jump)(ECond c, const char *fmt, ...);
 

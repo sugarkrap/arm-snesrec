@@ -159,6 +159,14 @@ static void a_cmp_imm(VReg a, uint32_t imm)
 	printf("\tcmp %s, " ADDR_SCRATCH "\n", R[a]);
 }
 
+static void a_set_eq_sym(const char *sym)
+{
+	printf("\tldr " ADDR_SCRATCH ", =%s\n", sym);
+	printf("\tmoveq ip, #1\n");
+	printf("\tmovne ip, #0\n");
+	printf("\tstrb ip, [" ADDR_SCRATCH "]\n");
+}
+
 /*
  * `ldr rX, =value` places the constant in a literal pool that must sit within
  * +-4KB of the load, and the assembler will only create one where we say. Long
@@ -291,6 +299,7 @@ const EmitOps emit_armv5 = {
 	a_alu_imm,
 	a_alu_reg,
 	a_cmp_imm,
+	a_set_eq_sym,
 	a_jump,
 	a_call_sym,
 	a_call_helper,
