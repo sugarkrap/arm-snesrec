@@ -92,6 +92,22 @@ typedef struct PPU {
   uint16_t CGADD;
   uint8_t CGDATA;
   uint8_t TM;
+  /* Window and colour-math registers. Every one of these used to be dropped
+   * on the floor, which is why FF6's title screen rendered BG1 as an opaque
+   * black curtain over the whole display: on hardware that layer is clipped
+   * to the bottom of the screen by window 1. */
+  uint8_t W12SEL;
+  uint8_t W34SEL;
+  uint8_t WOBJSEL;
+  uint8_t WH0, WH1, WH2, WH3;
+  uint8_t WBGLOG;
+  uint8_t WOBJLOG;
+  uint8_t TS;
+  uint8_t TMW;
+  uint8_t TSW;
+  uint8_t CGWSEL;
+  uint8_t CGADSUB;
+  uint8_t COLDATA;
   uint8_t STAT77;
   uint8_t STAT78;
   // Values

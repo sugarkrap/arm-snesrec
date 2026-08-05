@@ -217,6 +217,7 @@ unsigned long apu_log_n = 0;
 /* Diagnostic: which IO register is the game spinning on? Enabled by
  * SNESREC_IOSTATS, dumped at exit. One array increment per IO read. */
 unsigned long io_read_hist[0x10000];
+unsigned long io_write_hist[0x10000];
 unsigned long nmi_raised = 0;
 unsigned long rdnmi_hi = 0;   /* $4210 reads that returned bit7 set */
 unsigned long rdnmi_bank[256];  /* which bank are $4210 reads coming from? */
@@ -386,6 +387,10 @@ void dump_io_stats(void)
   for (int h = 0; h < 256; ++h)
     if (hdma_target_hist[h])
       printf("  $%04X  %lu\n", 0x2100 + h, hdma_target_hist[h]);
+  printf("\n=== PPU register WRITES ($2100-$213F) ===\n");
+  for (int h = 0x2100; h <= 0x213F; ++h)
+    if (io_write_hist[h])
+      printf("  $%04X  %lu\n", h, io_write_hist[h]);
   printf("\n=== IO read histogram (top 12) ===\n");
   while (shown < 12) {
     int bi = -1; best = 0;
@@ -1196,6 +1201,11 @@ int write8_sram_HiROM(uint64_t addr, uint8_t value)
 
 extern "C" void __WRITE8(uint32_t addr, uint32_t value)
 {
+  if (io_stats_on) {
+    uint16_t woff = addr & 0xFFFF;
+    if (woff >= 0x2100 && woff < 0x4400)
+      io_write_hist[woff]++;
+  }
   uint8_t v = value & 0xFF;
   uint8_t bank = (addr & 0xFF0000) >> 16;
   uint16_t offset = addr & 0xFFFF;
@@ -1435,6 +1445,23 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
   if (addr == 0x212C /* TM */) {
     ppu.TM = v;
   } else
+  /* Windows and colour math. FF6's title screen programs all of these; every
+   * one used to fall through to nothing. */
+  if (addr == 0x2123 /* W12SEL  */) { ppu.W12SEL  = v; } else
+  if (addr == 0x2124 /* W34SEL  */) { ppu.W34SEL  = v; } else
+  if (addr == 0x2125 /* WOBJSEL */) { ppu.WOBJSEL = v; } else
+  if (addr == 0x2126 /* WH0     */) { ppu.WH0     = v; } else
+  if (addr == 0x2127 /* WH1     */) { ppu.WH1     = v; } else
+  if (addr == 0x2128 /* WH2     */) { ppu.WH2     = v; } else
+  if (addr == 0x2129 /* WH3     */) { ppu.WH3     = v; } else
+  if (addr == 0x212A /* WBGLOG  */) { ppu.WBGLOG  = v; } else
+  if (addr == 0x212B /* WOBJLOG */) { ppu.WOBJLOG = v; } else
+  if (addr == 0x212D /* TS      */) { ppu.TS      = v; } else
+  if (addr == 0x212E /* TMW     */) { ppu.TMW     = v; } else
+  if (addr == 0x212F /* TSW     */) { ppu.TSW     = v; } else
+  if (addr == 0x2130 /* CGWSEL  */) { ppu.CGWSEL  = v; } else
+  if (addr == 0x2131 /* CGADSUB */) { ppu.CGADSUB = v; } else
+  if (addr == 0x2132 /* COLDATA */) { ppu.COLDATA = v; } else
   if (addr == 0x2118 /* VMDATAL */) {
     // printf("WRITE8(%02X) to VMDATAL\n", v);
     write_vram(&ppu, v, 0, (ppu.VMAIN & 0x80) == 0);
@@ -1815,8 +1842,52 @@ void draw_vram_4bpp(int offset)
  * first, so the line sees the register values the game wrote for it.
  */
 
+/*
+ * Window clipping.
+ *
+ * Each BG (and OBJ) can be masked by two windows. W12SEL/W34SEL hold, per
+ * layer, an enable and an invert bit for each window; WH0/WH1 and WH2/WH3 are
+ * the inclusive left/right edges; WBGLOG says how to combine the two when
+ * both are on (OR / AND / XOR / XNOR). TMW then selects which main-screen
+ * layers the result actually clips.
+ *
+ * layer is 0..3 for BG1..BG4 and 4 for OBJ.
+ */
+static int window_clips(int layer, int x)
+{
+  int sel, shift;
+  if (layer < 2)      { sel = ppu.W12SEL;  shift = layer * 4;       }
+  else if (layer < 4) { sel = ppu.W34SEL;  shift = (layer - 2) * 4; }
+  else                { sel = ppu.WOBJSEL; shift = 0;               }
+
+  int w1_en  = (sel >> (shift + 1)) & 1;
+  int w1_inv = (sel >> (shift + 0)) & 1;
+  int w2_en  = (sel >> (shift + 3)) & 1;
+  int w2_inv = (sel >> (shift + 2)) & 1;
+
+  if (!w1_en && !w2_en) return 0;
+  if (!(ppu.TMW & (1 << layer))) return 0;   /* window does not clip here */
+
+  int in1 = (x >= ppu.WH0 && x <= ppu.WH1) ^ w1_inv;
+  int in2 = (x >= ppu.WH2 && x <= ppu.WH3) ^ w2_inv;
+
+  int in;
+  if (w1_en && w2_en) {
+    int logic = (layer < 4 ? (ppu.WBGLOG >> (layer * 2)) : ppu.WOBJLOG) & 3;
+    switch (logic) {
+      case 0:  in =  in1 |  in2; break;      /* OR   */
+      case 1:  in =  in1 &  in2; break;      /* AND  */
+      case 2:  in =  in1 ^  in2; break;      /* XOR  */
+      default: in = !(in1 ^ in2); break;     /* XNOR */
+    }
+  } else {
+    in = w1_en ? in1 : in2;
+  }
+  return in;                                  /* inside the window = clipped */
+}
+
 /* One BG layer, one scanline. bpp is 2, 4 or 8. */
-static void draw_bg_scanline(int y, uint8_t BGSC, int chrbase, int bpp,
+static void draw_bg_scanline(int y, int layer, uint8_t BGSC, int chrbase, int bpp,
                              uint16_t hofs, uint16_t vofs)
 {
   int width   = (BGSC & 1) ? 64 : 32;
@@ -1830,6 +1901,7 @@ static void draw_bg_scanline(int y, uint8_t BGSC, int chrbase, int bpp,
   int fy   = ey & 7;
 
   for (int x = 0; x < SNES_WIDTH; ++x) {
+    if (window_clips(layer, x)) continue;
     int ex   = (x + hofs) & (width * 8 - 1);
     int tcol = ex >> 3;
     int fx   = ex & 7;
@@ -1920,6 +1992,7 @@ static void draw_obj_scanline(int y)
     for (int x = 0; x < w; ++x) {
       int dx = sx + x;
       if (dx < 0 || dx >= SNES_WIDTH) continue;
+      if (window_clips(4, dx)) continue;
       int ox = hflip ? (w - 1 - x) : x;
 
       int t  = (tile + (oy >> 3) * 16 + (ox >> 3)) & 0x1FF;
@@ -1964,18 +2037,18 @@ void draw_scanline(int y)
      */
     switch (ppu.BGMODE & 7) {
       case 0:
-        if (tm & 0x01) draw_bg_scanline(y, ppu.BG1SC, chr1, 2, ppu.BG1HOFS, ppu.BG1VOFS);
-        if (tm & 0x02) draw_bg_scanline(y, ppu.BG2SC, chr2, 2, ppu.BG2HOFS, ppu.BG2VOFS);
-        if (tm & 0x04) draw_bg_scanline(y, ppu.BG3SC, chr3, 2, ppu.BG3HOFS, ppu.BG3VOFS);
+        if (tm & 0x01) draw_bg_scanline(y, 0, ppu.BG1SC, chr1, 2, ppu.BG1HOFS, ppu.BG1VOFS);
+        if (tm & 0x02) draw_bg_scanline(y, 1, ppu.BG2SC, chr2, 2, ppu.BG2HOFS, ppu.BG2VOFS);
+        if (tm & 0x04) draw_bg_scanline(y, 2, ppu.BG3SC, chr3, 2, ppu.BG3HOFS, ppu.BG3VOFS);
         break;
       case 1:
-        if (tm & 0x01) draw_bg_scanline(y, ppu.BG1SC, chr1, 4, ppu.BG1HOFS, ppu.BG1VOFS);
-        if (tm & 0x02) draw_bg_scanline(y, ppu.BG2SC, chr2, 4, ppu.BG2HOFS, ppu.BG2VOFS);
-        if (tm & 0x04) draw_bg_scanline(y, ppu.BG3SC, chr3, 2, ppu.BG3HOFS, ppu.BG3VOFS);
+        if (tm & 0x01) draw_bg_scanline(y, 0, ppu.BG1SC, chr1, 4, ppu.BG1HOFS, ppu.BG1VOFS);
+        if (tm & 0x02) draw_bg_scanline(y, 1, ppu.BG2SC, chr2, 4, ppu.BG2HOFS, ppu.BG2VOFS);
+        if (tm & 0x04) draw_bg_scanline(y, 2, ppu.BG3SC, chr3, 2, ppu.BG3HOFS, ppu.BG3VOFS);
         break;
       case 3:
-        if (tm & 0x02) draw_bg_scanline(y, ppu.BG2SC, chr2, 4, ppu.BG2HOFS, ppu.BG2VOFS);
-        if (tm & 0x01) draw_bg_scanline(y, ppu.BG1SC, chr1, 8, ppu.BG1HOFS, ppu.BG1VOFS);
+        if (tm & 0x02) draw_bg_scanline(y, 1, ppu.BG2SC, chr2, 4, ppu.BG2HOFS, ppu.BG2VOFS);
+        if (tm & 0x01) draw_bg_scanline(y, 0, ppu.BG1SC, chr1, 8, ppu.BG1HOFS, ppu.BG1VOFS);
         break;
       default:
         break;
