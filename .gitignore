@@ -4,3 +4,5 @@ generated.s
 snesrec-arm
 tests/fixture.trace
 tests/fixture.rom
+roms/
+*.trace
