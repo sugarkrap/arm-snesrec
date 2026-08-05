@@ -52,6 +52,9 @@ static const char *R[VR_COUNT] = { "r0", "r1", "r2", "r4", "r5" };
 
 static unsigned long a_raw_sites;   /* unported sites seen, reported at end */
 
+/* Literal-pool accounting; defined below, called at the head of every emit op. */
+static void a_tick(unsigned n);
+
 static void a_prologue(void)
 {
 	printf("\t.text\n");
@@ -59,28 +62,33 @@ static void a_prologue(void)
 	printf("\t.syntax unified\n");
 }
 
+static void a_put_label(const char *fmt, va_list ap);
+
 static void a_label(const char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
-	vprintf(fmt, ap);
+	a_put_label(fmt, ap);
 	va_end(ap);
 	printf(":\n");
 }
 
 static void a_mov_reg_imm(VReg d, uint32_t imm)
 {
+	a_tick(1);
 	printf("\tldr %s, =0x%X\n", R[d], imm);
 }
 
 static void a_mov_reg_immw(VReg d, uint32_t imm, EWidth w)
 {
+	a_tick(1);
 	(void)w;   /* ldr= needs no width; the assembler picks the encoding */
 	printf("\tldr %s, =0x%X\n", R[d], imm);
 }
 
 static void a_mov_reg_reg(VReg d, VReg s)
 {
+	a_tick(1);
 	printf("\tmov %s, %s\n", R[d], R[s]);
 }
 
@@ -104,18 +112,21 @@ static const char *st_mnem(EWidth w)
 
 static void a_load_sym(VReg d, const char *sym, EWidth w)
 {
+	a_tick(2);
 	printf("\tldr " ADDR_SCRATCH ", =%s\n", sym);
 	printf("\t%s %s, [" ADDR_SCRATCH "]\n", ld_mnem(w), R[d]);
 }
 
 static void a_store_sym(const char *sym, VReg s, EWidth w)
 {
+	a_tick(2);
 	printf("\tldr " ADDR_SCRATCH ", =%s\n", sym);
 	printf("\t%s %s, [" ADDR_SCRATCH "]\n", st_mnem(w), R[s]);
 }
 
 static void a_store_sym_imm(const char *sym, uint32_t imm, EWidth w)
 {
+	a_tick(3);
 	/* Needs two scratches: one for the address, one for the value. r12 (ip)
 	 * is call-clobbered and unused by our register map, so it is free here. */
 	printf("\tldr " ADDR_SCRATCH ", =%s\n", sym);
@@ -138,6 +149,7 @@ static const char *alu_mnem(EAlu op)
 
 static void a_alu_imm(EAlu op, VReg d, uint32_t imm)
 {
+	a_tick(2);
 	if (op == EA_SHL || op == EA_SHR) {
 		printf("\t%s %s, %s, #%u\n", alu_mnem(op), R[d], R[d], imm);
 		return;
@@ -150,17 +162,20 @@ static void a_alu_imm(EAlu op, VReg d, uint32_t imm)
 
 static void a_alu_reg(EAlu op, VReg d, VReg s)
 {
+	a_tick(1);
 	printf("\t%s %s, %s, %s\n", alu_mnem(op), R[d], R[d], R[s]);
 }
 
 static void a_cmp_imm(VReg a, uint32_t imm)
 {
+	a_tick(2);
 	printf("\tldr " ADDR_SCRATCH ", =0x%X\n", imm);
 	printf("\tcmp %s, " ADDR_SCRATCH "\n", R[a]);
 }
 
 static void a_set_eq_sym(const char *sym)
 {
+	a_tick(4);
 	printf("\tldr " ADDR_SCRATCH ", =%s\n", sym);
 	printf("\tmoveq ip, #1\n");
 	printf("\tmovne ip, #0\n");
@@ -168,30 +183,90 @@ static void a_set_eq_sym(const char *sym)
 }
 
 /*
- * `ldr rX, =value` places the constant in a literal pool that must sit within
- * +-4KB of the load, and the assembler will only create one where we say. Long
- * runs of generated code overflow that range -- the assembler reports "invalid
- * literal constant: pool needs to be closer", which is how this was found.
+ * LITERAL POOLS.
  *
- * A pool is DATA: dropping one mid-stream would be executed as instructions.
- * So they go only where control flow cannot fall through -- immediately after
- * an unconditional branch or a return.
+ * `ldr rX, =value` puts the constant in a literal pool that must sit within
+ * +-4KB of the load, and the assembler only creates one where we say. This
+ * backend leans on ldr= heavily (see the immediate-encoding note at the top),
+ * so long runs of generated code overflow that range and the assembler reports
+ * "invalid literal constant: pool needs to be closer".
+ *
+ * Note the direction of this problem: every site ported off raw() onto real
+ * emission ADDS ldr= constants, so porting more of the decoder makes it
+ * strictly worse until pools exist. It is only visible by running an
+ * assembler over the output -- tests/check.sh does that for exactly this
+ * reason.
+ *
+ * A pool is DATA. Dropping one into the instruction stream would have it
+ * executed. The obvious safe points are after an unconditional branch or a
+ * return, but those cannot be relied on: a straight-line run between branches
+ * can be arbitrarily long, and while the decoder is mid-port most block
+ * terminators do not reach jump()/ret() at all -- gating on them emitted 12
+ * pools across 25k lines, which is to say none where they were needed. So the
+ * pool is emitted on a fixed interval and jumped over:
+ *
+ *      b       .Lpool_skip_N
+ *      .ltorg
+ *   .Lpool_skip_N:
+ *
+ * One branch per interval. FLUSH_EVERY counts emitted instructions and must
+ * stay well under 1024 (4KB / 4 bytes per instruction); 200 leaves room for
+ * the pool's own entries and for the multi-instruction sequences below.
  */
+#define FLUSH_EVERY 200
+
+static unsigned long a_ins_count;
+static unsigned long a_pool_id;
+
 static void a_ltorg(void)
 {
+	printf("\tb .Lpool_skip_%lu\n", a_pool_id);
 	printf("\t.ltorg\n");
+	printf(".Lpool_skip_%lu:\n", a_pool_id);
+	a_pool_id++;
+}
+
+/*
+ * Called at the START of an emit op and never inside one, so a pool can never
+ * land between the halves of a load/modify/store sequence. Placing it between
+ * a comparison and the instruction consuming its flags is safe: ARM branches
+ * and .ltorg data leave the condition flags untouched.
+ */
+static void a_tick(unsigned n)
+{
+	if (a_ins_count >= FLUSH_EVERY) {
+		a_ins_count = 0;
+		a_ltorg();
+	}
+	a_ins_count += n;
+}
+
+/*
+ * yasm spells a function-local label ".name". GNU as reads a leading dot as a
+ * directive, so ".return" becomes "unknown pseudo-op: `.return'". ".L" is the
+ * GNU local-label prefix, and has the bonus of being kept out of the symbol
+ * table.
+ */
+static void a_put_label(const char *fmt, va_list ap)
+{
+	char buf[256];
+
+	vsnprintf(buf, sizeof(buf), fmt, ap);
+	if (buf[0] == '.')
+		printf(".L%s", buf + 1);
+	else
+		printf("%s", buf);
 }
 
 static void a_jump(ECond c, const char *fmt, ...)
 {
 	va_list ap;
+	a_tick(1);
 	printf("\t%s ", c == EC_EQ ? "beq" : c == EC_NE ? "bne" : "b");
 	va_start(ap, fmt);
-	vprintf(fmt, ap);
+	a_put_label(fmt, ap);
 	va_end(ap);
 	printf("\n");
-	if (c == EC_ALWAYS)
-		a_ltorg();     /* safe: nothing falls through an unconditional b */
 }
 
 /* decode.cc reads a call's result out of VR_TMP -- true on x86_64 because rax
@@ -200,12 +275,14 @@ static void a_jump(ECond c, const char *fmt, ...)
  * clobbering it here is always safe even when the result goes unused. */
 static void a_call_sym(const char *sym)
 {
+	a_tick(2);
 	printf("\tbl %s\n", sym);
 	printf("\tmov r2, r0\n");
 }
 
 static void a_call_helper(const char *sym)
 {
+	a_tick(2);
 	/* AAPCS needs no shadow space, so this is the same as a bare call. The
 	 * distinction is kept because Win64 does need it. */
 	printf("\tbl %s\n", sym);
@@ -214,18 +291,20 @@ static void a_call_helper(const char *sym)
 
 static void a_ret(void)
 {
+	a_tick(1);
 	printf("\tbx lr\n");
-	a_ltorg();         /* safe: nothing falls through a return */
 }
 
 static void a_nop(void)
 {
+	a_tick(1);
 	/* ARMv5 has no dedicated NOP encoding; this is the conventional no-op. */
 	printf("\tmov r0, r0\n");
 }
 
 static void a_add_sym_imm(const char *sym, int32_t imm, EWidth w)
 {
+	a_tick(7);
 	printf("\tldr " ADDR_SCRATCH ", =%s\n", sym);
 	if (w == EW64) {
 		/*

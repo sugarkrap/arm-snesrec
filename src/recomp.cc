@@ -197,7 +197,7 @@ int main(int argc, char **argv)
   // MOV_REG8_IMM("D_Flag", 0);
   E->raw("  jmp Label_NMI\n");
   E->raw("  \n");
-  printf(".return\n");
+  E->label(".return");   /* ".return:" on yasm, ".Lreturn:" on GNU as */
   E->raw("  ret\n\n");
   
   printf("\n");

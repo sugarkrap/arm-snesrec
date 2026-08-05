@@ -56,13 +56,27 @@ tests/check.sh
 ```
 
 `tests/check.sh` synthesises a trace exercising **255 of the 256 opcodes** in
-all four (M,X) width combinations and diffs the emitted assembly against
-`tests/golden-x86_64.asm`. Because the recompiler's output is text, any change
-in what it emits is caught exactly. Only `0xDB` (STP) has no decoder arm.
+all four (M,X) width combinations, then runs two independent gates. Only
+`0xDB` (STP) has no decoder arm.
 
-The golden is a *no-change* check, not a correctness proof: it protects
-existing behaviour through a refactor, it does not claim that behaviour is
-right.
+1. **x86_64 golden diff.** The emitted assembly is compared against
+   `tests/golden-x86_64.asm`. Because the output is text, any change is caught
+   exactly. This is a *no-change* check, not a correctness proof — and note
+   that porting a family off `raw()` legitimately changes x86 output (ARM has
+   no memory-operand ALU, so `and word [rel regA], ax` must become
+   load/modify/store). Those diffs get reviewed line by line and accepted with
+   `--accept`, so the golden is a reviewed change log, not a frozen invariant.
+
+2. **ARMv5 assembly.** The ARM output is run through a real assembler. Nothing
+   else can catch the failure mode this backend actually has: it emits
+   `ldr rX, =value` everywhere, each needing a literal pool within ±4 KB, and
+   every site ported off `raw()` adds more — so ARM breakage *grows* as the
+   port progresses, invisibly to gate 1. Unported sites emit `.error` markers
+   and are stripped before assembling; the check reports how many instructions
+   it actually verified so it cannot pass by filtering everything away.
+
+Set `AS_ARM` to point at a cross assembler; gate 2 skips (rather than fails)
+when none is present.
 
 ## Status
 
@@ -71,8 +85,10 @@ Stated plainly so nobody rediscovers these the hard way:
 - **The recompiler runs on Linux; the runtime does not.** `emu.cc` includes
   `windows.h` and links `-lwinmm -lgdi32`. Getting anything onto the Zaurus
   needs an fbdev/evdev runtime, which does not exist yet.
-- **Only the x86_64 backend is real.** The ARMv5 backend is where this fork's
-  work goes.
+- **The ARMv5 backend is partial.** Its emission primitives are implemented and
+  the ported subset assembles cleanly, but ~5.5k decoder sites still emit
+  `.error` markers instead of ARM, so the full output does not yet assemble.
+  `grep -c 'E->raw(' src/decode.cc` is the remaining work list.
 - **No SPC700, so no audio.** Games need their audio-handshake routines
   short-circuited to run at all. Inherited from upstream.
 - **Traces come from a separately instrumented emulator** and are not included.

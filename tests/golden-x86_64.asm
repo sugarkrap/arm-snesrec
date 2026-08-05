@@ -100,7 +100,7 @@ __CPUSync:
   add rsp, 32
   jmp Label_NMI
   
-.return
+.return:
   ret
 
 
