@@ -205,37 +205,38 @@ __CPUSync:
   call Render
   add rsp, 32
   
-  mov rax, [rel NMI]
-  cmp al, 0
+  movzx rax, byte [rel NMI]
+  cmp rax, 0x0
   je .return
   
-  mov al, [rel io_RDNMI]
-  or al, 0x80
-  mov [rel io_RDNMI], al
+  movzx rax, byte [rel io_RDNMI]
+  or rax, 0x80
+  mov byte [rel io_RDNMI], al
   
-  mov byte [rel NMI], 0
-  mov al, [rel io_NMITIMEN]
-  and al, 0x80
-  cmp al, 0
+  mov byte [rel NMI], 0x00
+  movzx rax, byte [rel io_NMITIMEN]
+  and rax, 0x80
+  cmp rax, 0x0
   je .return
   
   add rsp, 32
   pop rax ; pop return address
   
-  mov byte [rel inNMI], 1
-  mov rax, r12
-  shr rax, 16
-  mov cl, al
+  mov byte [rel inNMI], 0x01
+  mov rcx, r12
+  shr rcx, 16
+  and rcx, 0xFF
   sub rsp, 32
   call __PUSH8
   add rsp, 32
-  mov rax, r12
-  mov cl, ah
+  mov rcx, r12
+  shr rcx, 8
+  and rcx, 0xFF
   sub rsp, 32
   call __PUSH8
   add rsp, 32
-  mov rax, r12
-  mov cl, al
+  mov rcx, r12
+  and rcx, 0xFF
   sub rsp, 32
   call __PUSH8
   add rsp, 32
@@ -250,7 +251,7 @@ __CPUSync:
 
   global Start
 Start:
-  mov byte [rel MapMode], 0
+  mov byte [rel MapMode], 0x00
   ret
 
   global Label_Reset

@@ -120,30 +120,13 @@ int main(int argc, char **argv)
     }
   }
   
-  printf("extern MapMode, CycleCount\n");
-  printf("extern regA, regX, regY, regS, regDP, regDBR\n");
-  printf("extern B_Flag, C_Flag, D_Flag, E_Flag, I_Flag\n");
-  printf("extern M_Flag, N_Flag, V_Flag, X_Flag, Z_Flag\n");
-  printf("extern inNMI, NMI, io_RDNMI, io_NMITIMEN, DoMessages, Render\n");
-  printf("extern pc_map, __JUMP_FAILED, __CALL_SHOW, __REG_DUMP, __READ_INS\n");
-  printf("extern __UpdateNZ_A8, __UpdateNZ_X8, __UpdateNZ_Y8\n");
-  printf("extern __UpdateNZ_A16, __UpdateNZ_X16, __UpdateNZ_Y16\n");
-  printf("extern __MVN, __MVP, __REP, __SEP, __XCE, __WDM, __WAI, __PRINT_INS\n");
-  printf("extern __TESTNZ8, __TESTNZ16, __COMPARE8, __COMPARE16\n");
-  printf("extern __ASL8, __ASL16, __LSR8, __LSR16, __ROR8, __ROR16, __ROL8, __ROL16\n");
-  printf("extern __TSB, __TRB, __BIT8, __BIT16, __INC8, __INC16, __ADC8, __ADC16, __SBC8, __SBC16\n");
-  printf("extern __PHP, __PLP, __PUSH8, __PUSH16, __PULL8, __PULL16\n");
-  printf("extern __WRITE8, __WRITE16, __READ8, __READ16, __READ24\n");
-  printf("\n");
+  E->prologue();
   
-  E->raw("  section .text\n");
   E->label("__CALL_ADDRESS");
-  E->raw("  mov r12, rcx\n");
-  E->raw("  sub rsp, 32\n");
-  E->raw("  call __CALL_SHOW\n");
-  E->raw("  add rsp, 32\n");
-  E->raw("  mov rcx, r12\n");
-  E->raw("  and rcx, 0xFFFFFF\n");
+  E->mov_reg_reg(VR_SAVE, VR_ARG0);
+  CALL_FUNCTION_STK("__CALL_SHOW");
+  E->mov_reg_reg(VR_ARG0, VR_SAVE);
+  E->alu_imm(EA_AND, VR_ARG0, 0xFFFFFF);
   int i = 0;
   for (auto r : routines) {
     E->cmp_imm_w(VR_ARG0, r, EW24);
@@ -152,59 +135,60 @@ int main(int argc, char **argv)
     E->label(".next_%d", i);
     i++;
   }
-  E->raw("  mov rdx, rbx\n");
-  E->raw("  call __JUMP_FAILED\n\n");
+  E->mov_reg_reg(VR_ARG1, VR_PC);
+  E->call_sym("__JUMP_FAILED");
+  printf("\n");
   
   E->label("__CPUSync");
-  E->raw("  sub rsp, 32\n");
-  E->raw("  call Render\n");
-  E->raw("  add rsp, 32\n");
-  E->raw("  \n");
+  CALL_FUNCTION_STK("Render");
+  printf("  \n");
   // E->raw("  mov al, byte [rel inNMI]\n");
   // E->raw("  cmp al, 0\n");
   // E->raw("  jne .return\n");
   // E->raw("  \n");
-  E->raw("  mov rax, [rel NMI]\n");
-  E->raw("  cmp al, 0\n");
-  E->raw("  je .return\n");
-  E->raw("  \n");
-  E->raw("  mov al, [rel io_RDNMI]\n");
-  E->raw("  or al, 0x80\n");
-  E->raw("  mov [rel io_RDNMI], al\n");
-  E->raw("  \n");
-  E->raw("  mov byte [rel NMI], 0\n");
-  E->raw("  mov al, [rel io_NMITIMEN]\n");
-  E->raw("  and al, 0x80\n");
-  E->raw("  cmp al, 0\n");
-  E->raw("  je .return\n");
-  E->raw("  \n");
+  E->load_sym(VR_TMP, "NMI", EW8);
+  E->cmp_imm(VR_TMP, 0);
+  E->jump(EC_EQ, ".return");
+  printf("  \n");
+  E->load_sym(VR_TMP, "io_RDNMI", EW8);
+  E->alu_imm(EA_OR, VR_TMP, 0x80);
+  E->store_sym("io_RDNMI", VR_TMP, EW8);
+  printf("  \n");
+  E->store_sym_imm("NMI", 0, EW8);
+  E->load_sym(VR_TMP, "io_NMITIMEN", EW8);
+  E->alu_imm(EA_AND, VR_TMP, 0x80);
+  E->cmp_imm(VR_TMP, 0);
+  E->jump(EC_EQ, ".return");
+  printf("  \n");
   E->raw("  add rsp, 32\n");
   E->raw("  pop rax ; pop return address\n");
-  E->raw("  \n");
-  E->raw("  mov byte [rel inNMI], 1\n");
-  E->raw("  mov rax, r12\n");
-  E->raw("  shr rax, 16\n");
-  E->raw("  mov cl, al\n");
+  printf("  \n");
+  E->store_sym_imm("inNMI", 1, EW8);
+  E->mov_reg_reg(VR_ARG0, VR_SAVE);
+  E->alu_imm(EA_SHR, VR_ARG0, 16);
+  E->alu_imm(EA_AND, VR_ARG0, 0xFF);
   CALL_FUNCTION_STK("__PUSH8");
-  E->raw("  mov rax, r12\n");
-  E->raw("  mov cl, ah\n");
+  E->mov_reg_reg(VR_ARG0, VR_SAVE);
+  E->alu_imm(EA_SHR, VR_ARG0, 8);
+  E->alu_imm(EA_AND, VR_ARG0, 0xFF);
   CALL_FUNCTION_STK("__PUSH8");
-  E->raw("  mov rax, r12\n");
-  E->raw("  mov cl, al\n");
+  E->mov_reg_reg(VR_ARG0, VR_SAVE);
+  E->alu_imm(EA_AND, VR_ARG0, 0xFF);
   CALL_FUNCTION_STK("__PUSH8");
   CALL_FUNCTION_STK("__PHP");
   // MOV_REG8_IMM("I_Flag", 1); // ?
   // MOV_REG8_IMM("D_Flag", 0);
-  E->raw("  jmp Label_NMI\n");
-  E->raw("  \n");
+  E->jump(EC_ALWAYS, "Label_NMI");
+  printf("  \n");
   E->label(".return");   /* ".return:" on yasm, ".Lreturn:" on GNU as */
-  E->raw("  ret\n\n");
+  E->ret();
+  printf("\n");
   
   printf("\n");
   E->global_sym("Start");
   E->label("Start");
-  E->raw("  mov byte [rel MapMode], %d\n", MapMode);
-  E->raw("  ret\n");
+  E->store_sym_imm("MapMode", MapMode, EW8);
+  E->ret();
   
   std::set<uint32_t> vram_addrs;
   int skips = 0;

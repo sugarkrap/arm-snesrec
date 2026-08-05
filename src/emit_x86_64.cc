@@ -32,6 +32,23 @@ static const char *width_kw(EWidth w)
 
 static void x_prologue(void)
 {
+	/* yasm requires every imported symbol to be declared. GNU as does not,
+	 * which is exactly why this belongs to the backend and not the driver. */
+	printf("extern MapMode, CycleCount\n");
+	printf("extern regA, regX, regY, regS, regDP, regDBR\n");
+	printf("extern B_Flag, C_Flag, D_Flag, E_Flag, I_Flag\n");
+	printf("extern M_Flag, N_Flag, V_Flag, X_Flag, Z_Flag\n");
+	printf("extern inNMI, NMI, io_RDNMI, io_NMITIMEN, DoMessages, Render\n");
+	printf("extern pc_map, __JUMP_FAILED, __CALL_SHOW, __REG_DUMP, __READ_INS\n");
+	printf("extern __UpdateNZ_A8, __UpdateNZ_X8, __UpdateNZ_Y8\n");
+	printf("extern __UpdateNZ_A16, __UpdateNZ_X16, __UpdateNZ_Y16\n");
+	printf("extern __MVN, __MVP, __REP, __SEP, __XCE, __WDM, __WAI, __PRINT_INS\n");
+	printf("extern __TESTNZ8, __TESTNZ16, __COMPARE8, __COMPARE16\n");
+	printf("extern __ASL8, __ASL16, __LSR8, __LSR16, __ROR8, __ROR16, __ROL8, __ROL16\n");
+	printf("extern __TSB, __TRB, __BIT8, __BIT16, __INC8, __INC16, __ADC8, __ADC16, __SBC8, __SBC16\n");
+	printf("extern __PHP, __PLP, __PUSH8, __PUSH16, __PULL8, __PULL16\n");
+	printf("extern __WRITE8, __WRITE16, __READ8, __READ16, __READ24\n");
+	printf("\n");
 	printf("  section .text\n");
 }
 
