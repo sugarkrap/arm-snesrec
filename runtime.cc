@@ -126,6 +126,14 @@ uint8_t apu_port[4] = { 0xAA, 0xBB, 0x00, 0x00 };
 unsigned long io_read_hist[0x10000];
 unsigned long nmi_raised = 0;
 unsigned long rdnmi_hi = 0;   /* $4210 reads that returned bit7 set */
+unsigned long rdnmi_bank[256];  /* which bank are $4210 reads coming from? */
+int  pending_bit7 = 0;          /* last $4210 read returned bit7 */
+/* r12 (VR_SAVE) holds the guest PC of the instruction currently executing --
+ * the per-instruction preamble sets it, and it is callee-saved in both the
+ * Win64 and System V ABIs, so it survives into a helper. That lets a helper
+ * report WHICH instruction called it without changing the generated code. */
+unsigned long bit7_pc[8]; unsigned long bit7_pc_n = 0;
+unsigned long n_after_bit7_set = 0, n_after_bit7_clear = 0;
 
 /* Ring of the last writes to $4200 (NMITIMEN). The register ends up holding
  * $01 -- NMI disabled -- and the question is whether the game ever enables it
@@ -223,6 +231,14 @@ void dump_io_stats(void)
          io_NMITIMEN, (io_NMITIMEN & 0x80) ? "YES" : "NO");
   printf("  NMIs raised  = %lu\n", nmi_raised);
   printf("  $4210 reads returning bit7 SET = %lu\n", rdnmi_hi);
+  printf("  after a bit7 read, N set = %lu, N clear = %lu\n",
+         n_after_bit7_set, n_after_bit7_clear);
+  printf("  bit7 reads seen at PC:");
+  { unsigned i; for (i = 0; i < bit7_pc_n; i++) printf(" %06lX", bit7_pc[i]); }
+  printf("\n");
+  printf("  $4210 reads by BANK:");
+  { int b; for (b = 0; b < 256; b++) if (rdnmi_bank[b]) printf(" $%02X=%lu", b, rdnmi_bank[b]); }
+  printf("\n");
   printf("  inNMI        = %d\n", inNMI);
   printf("  $4200 writes = %lu, last %d values:", nmitimen_writes,
          (int)(nmitimen_writes < NMITIMEN_LOG ? nmitimen_writes : NMITIMEN_LOG));
@@ -315,7 +331,11 @@ extern "C" void Render(void)
 }
 
 
-void __UpdateNZ_A8(void) { Z_Flag = ((regA & 0xFF) == 0); N_Flag = (regA & 0x80) != 0; }
+void __UpdateNZ_A8(void) {
+  Z_Flag = ((regA & 0xFF) == 0); N_Flag = (regA & 0x80) != 0;
+  if (pending_bit7) { pending_bit7 = 0;
+    if (N_Flag) n_after_bit7_set++; else n_after_bit7_clear++; }
+}
 void __UpdateNZ_X8(void) { Z_Flag = ((regX & 0xFF) == 0); N_Flag = (regX & 0x80) != 0; }
 void __UpdateNZ_Y8(void) { Z_Flag = ((regY & 0xFF) == 0); N_Flag = (regY & 0x80) != 0; }
 
@@ -819,6 +839,8 @@ extern "C" uint8_t __READ8(uint32_t addr)
     uint16_t off = addr & 0xFFFF;
     if (off >= 0x2100 && off < 0x4400)
       io_read_hist[off]++;
+    if (off == 0x4210)
+      rdnmi_bank[(addr >> 16) & 0xFF]++;
   }
   uint8_t bank = (addr & 0xFF0000) >> 16;
   uint16_t offset = addr & 0xFFFF;
@@ -848,7 +870,13 @@ extern "C" uint8_t __READ8(uint32_t addr)
   } else
   if (addr == 0x4210 /* RDNMI */) {
     uint8_t rdnmi = io_RDNMI;
-    if (io_stats_on && (rdnmi & 0x80)) rdnmi_hi++;
+    if (io_stats_on && (rdnmi & 0x80)) {
+      rdnmi_hi++; pending_bit7 = 1;
+      { register unsigned long r12v asm("r12");
+        unsigned long pc = r12v & 0xFFFFFF; unsigned i; int seen = 0;
+        for (i = 0; i < bit7_pc_n; i++) if (bit7_pc[i] == pc) seen = 1;
+        if (!seen && bit7_pc_n < 8) bit7_pc[bit7_pc_n++] = pc; }
+    }
     io_RDNMI &= 0x7F;
     return rdnmi;
   } else
