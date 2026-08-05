@@ -120,6 +120,12 @@ DMA dma;
  * routine that depends on the SPC actually doing something will still fail.
  */
 uint8_t apu_port[4] = { 0xAA, 0xBB, 0x00, 0x00 };
+
+/* Diagnostic: which IO register is the game spinning on? Enabled by
+ * SNESREC_IOSTATS, dumped at exit. One array increment per IO read. */
+unsigned long io_read_hist[0x10000];
+unsigned long nmi_raised = 0;
+int io_stats_on = 0;
 int APUIO0 = 0xAA; // For some SMW tests
 int APUIO1 = 0xBB; // 
 uint32_t framebuf[SNES_WIDTH * SNES_HEIGHT];
@@ -174,6 +180,7 @@ int main(int argc, char **argv)
   fread(rom, 1, len, f);
   fclose(f);
 
+  io_stats_on = getenv("SNESREC_IOSTATS") ? 1 : 0;
   if (plat_init("SNES Recomp Runtime") < 0) {
     printf("error: plat_init() failed.\n");
     return -1;
@@ -197,8 +204,31 @@ int main(int argc, char **argv)
   return 0;
 }
 
+void dump_io_stats(void)
+{
+  int i, shown = 0;
+  unsigned long best;
+  if (!io_stats_on) return;
+  printf("\n=== NMI state ===\n");
+  printf("  io_NMITIMEN = $%02X  (bit7 = NMI enabled: %s)\n",
+         io_NMITIMEN, (io_NMITIMEN & 0x80) ? "YES" : "NO");
+  printf("  NMIs raised  = %lu\n", nmi_raised);
+  printf("  inNMI        = %d\n", inNMI);
+  printf("\n=== IO read histogram (top 12) ===\n");
+  while (shown < 12) {
+    int bi = -1; best = 0;
+    for (i = 0x2100; i < 0x4400; i++)
+      if (io_read_hist[i] > best) { best = io_read_hist[i]; bi = i; }
+    if (bi < 0) break;
+    printf("  $%04X  %lu reads\n", bi, best);
+    io_read_hist[bi] = 0;
+    shown++;
+  }
+}
+
 void Cleanup(void)
 {
+  dump_io_stats();
   plat_shutdown();
   
   FILE *fwram = fopen("wram_dump.x", "wb");
@@ -261,6 +291,7 @@ extern "C" void Render(void)
     
     CycleCount = 0;
     NMI = 1;
+    nmi_raised++;
   }
 }
 
@@ -765,6 +796,11 @@ uint8_t read8_rom_HiROM(uint64_t addr, int* read)
 
 extern "C" uint8_t __READ8(uint32_t addr)
 {
+  if (io_stats_on) {
+    uint16_t off = addr & 0xFFFF;
+    if (off >= 0x2100 && off < 0x4400)
+      io_read_hist[off]++;
+  }
   uint8_t bank = (addr & 0xFF0000) >> 16;
   uint16_t offset = addr & 0xFFFF;
   uint32_t address = addr & 0xFFFFFF;
