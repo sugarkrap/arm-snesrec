@@ -12840,7 +12840,7 @@ Label_808C00:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  movzx rdx, ax
+  mov rdx, rax
   movzx rcx, word [rel regY]
   sub rsp, 32
   call __COMPARE16
@@ -12857,7 +12857,7 @@ Label_808C00:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  movzx rdx, al
+  mov rdx, rax
   movzx rcx, byte [rel regY]
   sub rsp, 32
   call __COMPARE8
@@ -12874,7 +12874,7 @@ Label_808C00:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  movzx rdx, ax
+  mov rdx, rax
   movzx rcx, word [rel regY]
   sub rsp, 32
   call __COMPARE16
@@ -12891,7 +12891,7 @@ Label_808C00:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  movzx rdx, al
+  mov rdx, rax
   movzx rcx, byte [rel regY]
   sub rsp, 32
   call __COMPARE8
@@ -12908,7 +12908,7 @@ Label_808C00:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  movzx rdx, ax
+  mov rdx, rax
   movzx rcx, word [rel regA]
   sub rsp, 32
   call __COMPARE16
@@ -12925,7 +12925,7 @@ Label_808C00:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  movzx rdx, ax
+  mov rdx, rax
   movzx rcx, word [rel regA]
   sub rsp, 32
   call __COMPARE16
@@ -12942,7 +12942,7 @@ Label_808C00:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  movzx rdx, al
+  mov rdx, rax
   movzx rcx, byte [rel regA]
   sub rsp, 32
   call __COMPARE8
@@ -12959,7 +12959,7 @@ Label_808C00:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  movzx rdx, al
+  mov rdx, rax
   movzx rcx, byte [rel regA]
   sub rsp, 32
   call __COMPARE8
@@ -13068,6 +13068,7 @@ Label_808C00:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   sub rsp, 32
   call __READ24
   add rsp, 32
@@ -13088,6 +13089,7 @@ Label_808C00:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   sub rsp, 32
   call __READ24
   add rsp, 32
@@ -13108,6 +13110,7 @@ Label_808C00:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   sub rsp, 32
   call __READ24
   add rsp, 32
@@ -13128,6 +13131,7 @@ Label_808C00:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   sub rsp, 32
   call __READ24
   add rsp, 32
@@ -13304,7 +13308,7 @@ Label_808C00:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  movzx rdx, ax
+  mov rdx, rax
   movzx rcx, word [rel regY]
   sub rsp, 32
   call __COMPARE16
@@ -13321,7 +13325,7 @@ Label_808C00:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  movzx rdx, al
+  mov rdx, rax
   movzx rcx, byte [rel regY]
   sub rsp, 32
   call __COMPARE8
@@ -13338,7 +13342,7 @@ Label_808C00:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  movzx rdx, ax
+  mov rdx, rax
   movzx rcx, word [rel regY]
   sub rsp, 32
   call __COMPARE16
@@ -13355,7 +13359,7 @@ Label_808C00:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  movzx rdx, al
+  mov rdx, rax
   movzx rcx, byte [rel regY]
   sub rsp, 32
   call __COMPARE8
@@ -13982,7 +13986,7 @@ Label_808C00:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  movzx rdx, ax
+  mov rdx, rax
   movzx rcx, word [rel regA]
   sub rsp, 32
   call __COMPARE16
@@ -14002,7 +14006,7 @@ Label_808C00:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  movzx rdx, ax
+  mov rdx, rax
   movzx rcx, word [rel regA]
   sub rsp, 32
   call __COMPARE16
@@ -14021,7 +14025,7 @@ Label_808C00:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  movzx rdx, al
+  mov rdx, rax
   movzx rcx, byte [rel regA]
   sub rsp, 32
   call __COMPARE8
@@ -14041,7 +14045,7 @@ Label_808C00:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  movzx rdx, al
+  mov rdx, rax
   movzx rcx, byte [rel regA]
   sub rsp, 32
   call __COMPARE8
@@ -14160,12 +14164,13 @@ Label_808C00:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   sub rsp, 32
   call __READ24
   add rsp, 32
-  movzx ebx, word [rel regY]
-  add eax, ebx
   mov rcx, rax
+  movzx rax, word [rel regY]
+  add rcx, rax
   sub rsp, 32
   call __READ16
   add rsp, 32
@@ -14182,12 +14187,14 @@ Label_808C00:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   sub rsp, 32
   call __READ24
   add rsp, 32
-  movzx ebx, word [rel regY]
-  add eax, ebx
   mov rcx, rax
+  movzx rax, word [rel regY]
+  and rax, 0xFF
+  add rcx, rax
   sub rsp, 32
   call __READ16
   add rsp, 32
@@ -14204,12 +14211,13 @@ Label_808C00:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   sub rsp, 32
   call __READ24
   add rsp, 32
-  movzx ebx, word [rel regY]
-  add eax, ebx
   mov rcx, rax
+  movzx rax, word [rel regY]
+  add rcx, rax
   sub rsp, 32
   call __READ8
   add rsp, 32
@@ -14226,12 +14234,14 @@ Label_808C00:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   sub rsp, 32
   call __READ24
   add rsp, 32
-  movzx ebx, word [rel regY]
-  add eax, ebx
   mov rcx, rax
+  movzx rax, word [rel regY]
+  and rax, 0xFF
+  add rcx, rax
   sub rsp, 32
   call __READ8
   add rsp, 32
@@ -14750,8 +14760,7 @@ Label_808C00:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regX]
-  movzx rcx, ax
+  movzx rcx, word [rel regX]
   mov rdx, 0x3412
   sub rsp, 32
   call __COMPARE16
@@ -14762,8 +14771,7 @@ Label_808C00:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regX]
-  movzx rcx, ax
+  movzx rcx, word [rel regX]
   mov rdx, 0x12
   sub rsp, 32
   call __COMPARE8
@@ -14774,8 +14782,7 @@ Label_808C00:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regX]
-  movzx rcx, ax
+  movzx rcx, word [rel regX]
   mov rdx, 0x3412
   sub rsp, 32
   call __COMPARE16
@@ -14786,8 +14793,7 @@ Label_808C00:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regX]
-  movzx rcx, ax
+  movzx rcx, word [rel regX]
   mov rdx, 0x12
   sub rsp, 32
   call __COMPARE8
@@ -15026,7 +15032,7 @@ Label_808C00:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  movzx rdx, ax
+  mov rdx, rax
   movzx rcx, word [rel regX]
   sub rsp, 32
   call __COMPARE16
@@ -15043,7 +15049,7 @@ Label_808C00:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  movzx rdx, al
+  mov rdx, rax
   movzx rcx, byte [rel regX]
   sub rsp, 32
   call __COMPARE8
@@ -15060,7 +15066,7 @@ Label_808C00:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  movzx rdx, ax
+  mov rdx, rax
   movzx rcx, word [rel regX]
   sub rsp, 32
   call __COMPARE16
@@ -15077,7 +15083,7 @@ Label_808C00:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  movzx rdx, al
+  mov rdx, rax
   movzx rcx, byte [rel regX]
   sub rsp, 32
   call __COMPARE8
@@ -15510,7 +15516,7 @@ Label_808C00:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  movzx rdx, ax
+  mov rdx, rax
   movzx rcx, word [rel regX]
   sub rsp, 32
   call __COMPARE16
@@ -15527,7 +15533,7 @@ Label_808C00:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  movzx rdx, al
+  mov rdx, rax
   movzx rcx, byte [rel regX]
   sub rsp, 32
   call __COMPARE8
@@ -15544,7 +15550,7 @@ Label_808C00:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  movzx rdx, ax
+  mov rdx, rax
   movzx rcx, word [rel regX]
   sub rsp, 32
   call __COMPARE16
@@ -15561,7 +15567,7 @@ Label_808C00:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  movzx rdx, al
+  mov rdx, rax
   movzx rcx, byte [rel regX]
   sub rsp, 32
   call __COMPARE8
