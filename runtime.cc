@@ -163,6 +163,7 @@ int apu_log_on = 0;                               /* SNESREC_APULOG diagnostic *
  * rather than deleted: it is the right diagnostic when a screen is wrong. */
 int ppu_log_on = 0;                               /* SNESREC_PPULOG diagnostic */
 int dma_log_on = 0;                               /* SNESREC_DMALOG diagnostic */
+int wram_log_on = 0;                              /* SNESREC_WRAMLOG diagnostic */
 /* SNESREC_WATCH=<hex addr>: log every write to a 16-byte window at that guest
  * address, with the PC that did it. A statically recompiled binary can only
  * execute WRAM code if the WRAM bytes match what was traced, so "who was
@@ -281,6 +282,7 @@ int main(int argc, char **argv)
   apu_log_on  = getenv("SNESREC_APULOG") ? 1 : 0;
   ppu_log_on  = getenv("SNESREC_PPULOG") ? 1 : 0;
   dma_log_on  = getenv("SNESREC_DMALOG") ? 1 : 0;
+  wram_log_on = getenv("SNESREC_WRAMLOG") ? 1 : 0;
   { const char *d = getenv("SNESREC_DBRAT");
     dbr_at = d && *d ? strtoul(d, NULL, 16) : 0; }
   { const char *w = getenv("SNESREC_WATCH");
@@ -1065,6 +1067,64 @@ extern "C" uint32_t __READ_INS(uint32_t addr)
   ret |= __READ8(addr+3) & 0xFF;
   // printf("__READ_INS(%06X)=%08X\n", addr, ret);
   return ret;
+}
+
+/*
+ * A WRAM instruction whose bytes no longer match the trace has no valid
+ * statically compiled form, so the generated block guards itself and skips.
+ * That skip used to be a plain fall-through into the next emitted block --
+ * which is not a fallback at all, because "next emitted block" is whatever
+ * the recompiler happened to lay down next, ordered by first encounter in the
+ * trace and so unrelated to the guest's control flow.
+ *
+ * FF6 made that catastrophic. Its NMI vector is `JML $001500`, and a routine
+ * at $7E505F rewrites $001500/$001504 into JML trampolines every time it runs
+ * -- that is the entire point of putting them in RAM. So from the first frame
+ * onwards both guards failed, and every NMI fell through both blocks into
+ * Label_7E5000, some 700 trace rows further down, entering an unrelated
+ * routine with an NMI stack frame. It ran to an RTS that pulled bytes the
+ * trampoline installer had just written ($5C, $7E) and jumped to $7E5C7F,
+ * which is not code at all. Nothing was logged along the way, because a
+ * skipped block emits no __CPUSync.
+ *
+ * Self-modified WRAM code is overwhelmingly this one idiom: a re-targetable
+ * jump vector. So decode the live bytes for the jump family and dispatch on
+ * the address actually stored there. Anything else returns 0 for "no
+ * retarget" and keeps the historical fall-through -- still wrong, but no more
+ * wrong than it was, and SNESREC_WRAMLOG now names every place it happens
+ * instead of letting it corrupt the run in silence.
+ */
+extern "C" uint32_t __WRAM_RETARGET(uint32_t pc)
+{
+  uint32_t ins = __READ_INS(pc);
+  uint8_t  op  = (ins >> 24) & 0xFF;
+  uint32_t a0  = (ins >> 16) & 0xFF;
+  uint32_t a1  = (ins >>  8) & 0xFF;
+  uint32_t a2  =  ins        & 0xFF;
+  uint32_t target = 0;
+
+  switch (op) {
+    case 0x5C:                                  /* JML addr24              */
+      target = (a2 << 16) | (a1 << 8) | a0;
+      break;
+    case 0x4C:                                  /* JMP addr16, program bank */
+      target = (pc & 0xFF0000) | (a1 << 8) | a0;
+      break;
+    case 0x6C: {                                /* JMP (addr16), bank $00   */
+      uint32_t p = (a1 << 8) | a0;
+      target = (pc & 0xFF0000)
+             | ((__READ8(p + 1) & 0xFF) << 8)
+             |  (__READ8(p)     & 0xFF);
+      break;
+    }
+    default:
+      break;
+  }
+
+  if (wram_log_on)
+    printf("WRAM PATCHED %06X: %08X -> %s %06X\n", pc, ins,
+           target ? "retarget" : "fall through", target);
+  return target;
 }
 
 int write8_sram_HiROM(uint64_t addr, uint8_t value)

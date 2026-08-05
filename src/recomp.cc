@@ -313,7 +313,7 @@ int main(int argc, char **argv)
       E->mov_reg_immw(VR_ARG0, ca.pc, EW24);
       CALL_FUNCTION_STK("__READ_INS");
       E->cmp_imm_w(VR_TMP, ca.ins, EW32);
-      E->jump(EC_NE, "Label_%06X_skip%d", ca.pc, skips);
+      E->jump(EC_NE, "Label_%06X_patched%d", ca.pc, skips);
     }
     /* Per-instruction preamble: stash the guest PC where __CPUSync and the
      * dispatch can find it, then sync. Emitted once per traced instruction,
@@ -323,6 +323,32 @@ int main(int argc, char **argv)
     CALL_FUNCTION_STK("__CPUSync");
     decode_65C816(ca);
     if (in_wram(ca.pc)) {
+      /*
+       * `_skip` is the JOIN point -- the executed path falls into it and the
+       * guard used to branch straight to it -- so the guard's failure path had
+       * no handler of its own: it simply continued into the next emitted
+       * block. That block is whatever the recompiler laid down next, ordered
+       * by first encounter in the trace, which has nothing to do with where
+       * the guest was going. FF6 rewrites its NMI vector at $001500 into a JML
+       * trampoline (see __WRAM_RETARGET), so from frame one every NMI fell
+       * through two stale blocks into an unrelated routine.
+       *
+       * Give the failure path a real handler at `_patched`: ask the runtime
+       * what the live bytes say, and dispatch on the address actually stored
+       * there. Zero means "not a jump" and rejoins at `_skip`, preserving the
+       * old behaviour, so this can only improve on it. The extra unconditional
+       * jump into `_skip` is dead whenever the instruction body ends in
+       * control flow of its own, which is most of them.
+       */
+      E->jump(EC_ALWAYS, "Label_%06X_skip%d", ca.pc, skips);
+      E->label("Label_%06X_patched%d", ca.pc, skips);
+      E->mov_reg_immw(VR_ARG0, ca.pc, EW24);
+      CALL_FUNCTION_STK("__WRAM_RETARGET");
+      E->cmp_imm_w(VR_TMP, 0, EW32);
+      E->jump(EC_EQ, "Label_%06X_skip%d", ca.pc, skips);
+      E->mov_reg_reg(VR_ARG0, VR_TMP);
+      E->mov_reg_immw(VR_PC, ca.pc, EW24);
+      E->jump(EC_ALWAYS, "__CALL_ADDRESS");
       E->label("Label_%06X_skip%d", ca.pc, skips);
       skips++;
     }
