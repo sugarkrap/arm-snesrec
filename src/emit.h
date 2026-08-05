@@ -79,6 +79,11 @@ typedef struct EmitOps {
 
 	void (*alu_imm)(EAlu op, VReg d, uint32_t imm);
 	void (*alu_reg)(EAlu op, VReg d, VReg s);
+
+	/* alu_imm, but with the constant printed at a fixed width. Same reason
+	 * EW24 exists: "or rax, 0x%06X" against a bank must not silently become
+	 * "or rax, 0x0" for bank 0. Only the sites that need the padding use it. */
+	void (*alu_imm_w)(EAlu op, VReg d, uint32_t imm, EWidth w);
 	void (*cmp_imm)(VReg a, uint32_t imm);
 
 	/* Compare a guest-state symbol directly against a constant. x86 does this

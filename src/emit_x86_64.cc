@@ -116,6 +116,18 @@ static void x_alu_imm(EAlu op, VReg d, uint32_t imm)
 		printf("  %s %s, 0x%X\n", alu_mnem(op), R64[d], imm);
 }
 
+static void x_alu_imm_w(EAlu op, VReg d, uint32_t imm, EWidth w)
+{
+	if (w == EW8)
+		printf("  %s %s, 0x%02X\n", alu_mnem(op), R64[d], imm);
+	else if (w == EW16)
+		printf("  %s %s, 0x%04X\n", alu_mnem(op), R64[d], imm);
+	else if (w == EW24)
+		printf("  %s %s, 0x%06X\n", alu_mnem(op), R64[d], imm);
+	else
+		printf("  %s %s, 0x%X\n", alu_mnem(op), R64[d], imm);
+}
+
 static void x_alu_reg(EAlu op, VReg d, VReg s)
 {
 	printf("  %s %s, %s\n", alu_mnem(op), R64[d], R64[s]);
@@ -205,6 +217,7 @@ const EmitOps emit_x86_64 = {
 	x_store_sym_imm,
 	x_alu_imm,
 	x_alu_reg,
+	x_alu_imm_w,
 	x_cmp_imm,
 	x_cmp_sym_imm,
 	x_set_eq_sym,

@@ -381,13 +381,25 @@ void decode_65C816(CodeAddr ca)
     E->store_sym_imm("inNMI", 0, EW8);
     ADD_CYCLES(6);
     CALL_FUNCTION_STK("__PLP");
+    /*
+     * __PULL8 returns uint8_t, so only the low byte of the return register is
+     * defined -- the original wrote through the bl/bh sub-registers and masked
+     * with "and rbx, 0xFFFF" for exactly that reason. Copying the whole
+     * register instead drags the undefined upper bits into the address, and
+     * __CALL_ADDRESS masks to 24 bits, not 16, so bits 16-23 survive and
+     * corrupt the BANK of the jump target. Mask every byte explicitly.
+     */
     CALL_FUNCTION_STK("__PULL8");
     E->mov_reg_reg(VR_PC, VR_TMP);
+    E->alu_imm(EA_AND, VR_PC, 0xFF);
     CALL_FUNCTION_STK("__PULL8");
+    E->alu_imm(EA_AND, VR_TMP, 0xFF);
     E->alu_imm(EA_SHL, VR_TMP, 8);
     E->alu_reg(EA_OR, VR_PC, VR_TMP);
+    E->alu_imm(EA_AND, VR_PC, 0xFFFF);
     CALL_FUNCTION_STK("__PULL8");
     E->mov_reg_reg(VR_ARG0, VR_TMP);
+    E->alu_imm(EA_AND, VR_ARG0, 0xFF);
     E->alu_imm(EA_SHL, VR_ARG0, 16);
     E->alu_reg(EA_OR, VR_ARG0, VR_PC);
     E->mov_reg_immw(VR_PC, ca.pc, EW24);
@@ -2762,8 +2774,8 @@ void decode_65C816(CodeAddr ca)
     ADD_CYCLES(2);
   } else
   if (op == 0xCA) { // DEX
-    E->raw("  mov ax, word [rel regX]\n");
-    E->raw("  dec ax\n");
+    E->load_sym(VR_TMP, "regX", EW16);
+    E->alu_imm(EA_SUB, VR_TMP, 1);
     E->store_sym("regX", VR_TMP, EW16);
     UPDATE_NZ_X(ca.X);
     ADD_CYCLES(2);
@@ -2781,8 +2793,8 @@ void decode_65C816(CodeAddr ca)
     ADD_CYCLES(2);
   } else
   if (op == 0x88) { // dey
-    E->raw("  mov ax, word [rel regY]\n");
-    E->raw("  dec ax\n");
+    E->load_sym(VR_TMP, "regY", EW16);
+    E->alu_imm(EA_SUB, VR_TMP, 1);
     E->store_sym("regY", VR_TMP, EW16);
     UPDATE_NZ_Y(ca.X);
     ADD_CYCLES(2);
@@ -2790,10 +2802,13 @@ void decode_65C816(CodeAddr ca)
   if (op == 0x60) { // rts
     ADD_CYCLES(6);
     CALL_FUNCTION_STK("__PULL8");
-    E->raw("  mov bl, al\n");
+    E->mov_reg_reg(VR_PC, VR_TMP);
+    E->alu_imm(EA_AND, VR_PC, 0xFF);
     CALL_FUNCTION_STK("__PULL8");
-    E->raw("  mov bh, al\n");
-    E->raw("  inc bx\n");
+    E->alu_imm(EA_AND, VR_TMP, 0xFF);
+    E->alu_imm(EA_SHL, VR_TMP, 8);
+    E->alu_reg(EA_OR, VR_PC, VR_TMP);
+    E->alu_imm(EA_ADD, VR_PC, 1);
     E->alu_imm(EA_AND, VR_PC, 0xFFFF);
     E->mov_reg_immw(VR_ARG0, ca.pc & 0xFF0000, EW24);
     E->alu_reg(EA_OR, VR_ARG0, VR_PC);
@@ -2803,23 +2818,30 @@ void decode_65C816(CodeAddr ca)
   if (op == 0x6B) { // rtl
     ADD_CYCLES(6);
     CALL_FUNCTION_STK("__PULL8");
-    E->raw("  mov bl, al\n");
+    E->mov_reg_reg(VR_PC, VR_TMP);
+    E->alu_imm(EA_AND, VR_PC, 0xFF);
     CALL_FUNCTION_STK("__PULL8");
-    E->raw("  mov bh, al\n");
-    E->raw("  inc bx\n");
+    E->alu_imm(EA_AND, VR_TMP, 0xFF);
+    E->alu_imm(EA_SHL, VR_TMP, 8);
+    E->alu_reg(EA_OR, VR_PC, VR_TMP);
+    E->alu_imm(EA_ADD, VR_PC, 1);
     E->alu_imm(EA_AND, VR_PC, 0xFFFF);
     CALL_FUNCTION_STK("__PULL8");
-    E->raw("  movzx rcx, al\n");
+    E->mov_reg_reg(VR_ARG0, VR_TMP);
+    E->alu_imm(EA_AND, VR_ARG0, 0xFF);
     E->alu_imm(EA_SHL, VR_ARG0, 16);
     E->alu_reg(EA_OR, VR_ARG0, VR_PC);
     E->mov_reg_immw(VR_PC, ca.pc, EW24);
     E->jump(EC_ALWAYS, "__CALL_ADDRESS");
   } else
   if (op == 0xEB) { // xba
-    E->raw("  mov ax, word [rel regA]\n");
-    E->raw("  mov bl, al\n");
-    E->raw("  mov al, ah\n");
-    E->raw("  mov ah, bl\n");
+    E->load_sym(VR_TMP, "regA", EW16);
+    E->mov_reg_reg(VR_ARG1, VR_TMP);
+    E->alu_imm(EA_AND, VR_ARG1, 0xFF);
+    E->alu_imm(EA_SHL, VR_ARG1, 8);
+    E->alu_imm(EA_SHR, VR_TMP, 8);
+    E->alu_imm(EA_AND, VR_TMP, 0xFF);
+    E->alu_reg(EA_OR, VR_TMP, VR_ARG1);
     E->store_sym("regA", VR_TMP, EW16);
     UPDATE_NZ_A(1);
     ADD_CYCLES(3);
@@ -4188,7 +4210,7 @@ void decode_65C816(CodeAddr ca)
     ADD_CYCLES(5);
     E->mov_reg_immw(VR_ARG0, address, EW16);
     CALL_FUNCTION_STK("__READ16");
-    E->raw("  or rax, 0x%06X\n", ca.pc & 0xFF0000);
+    E->alu_imm_w(EA_OR, VR_TMP, ca.pc & 0xFF0000, EW24);
     E->mov_reg_reg(VR_ARG0, VR_TMP);
     CALL_FUNCTION_STK("pc_map");
     E->mov_reg_reg(VR_ARG0, VR_TMP);
@@ -4203,7 +4225,7 @@ void decode_65C816(CodeAddr ca)
     E->alu_imm(EA_AND, VR_ARG0, 0xFFFF);
     CALL_FUNCTION_STK("__READ16");
     E->mov_reg_reg(VR_ARG0, VR_TMP);
-    E->raw("  or rcx, 0x%06X\n", ca.pc & 0xFF0000);
+    E->alu_imm_w(EA_OR, VR_ARG0, ca.pc & 0xFF0000, EW24);
     E->mov_reg_immw(VR_PC, ca.pc, EW24);
     E->jump(EC_ALWAYS, "__CALL_ADDRESS");
   } else

@@ -160,6 +160,12 @@ static void a_alu_imm(EAlu op, VReg d, uint32_t imm)
 	printf("\t%s %s, %s, " ADDR_SCRATCH "\n", alu_mnem(op), R[d], R[d]);
 }
 
+static void a_alu_imm_w(EAlu op, VReg d, uint32_t imm, EWidth w)
+{
+	(void)w;   /* ldr= carries any 32-bit constant; width is a printing detail */
+	a_alu_imm(op, d, imm);
+}
+
 static void a_alu_reg(EAlu op, VReg d, VReg s)
 {
 	a_tick(1);
@@ -390,6 +396,7 @@ const EmitOps emit_armv5 = {
 	a_store_sym_imm,
 	a_alu_imm,
 	a_alu_reg,
+	a_alu_imm_w,
 	a_cmp_imm,
 	a_cmp_sym_imm,
 	a_set_eq_sym,

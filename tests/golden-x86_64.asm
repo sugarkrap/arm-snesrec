@@ -4805,15 +4805,19 @@ Label_808400:
   call __PULL8
   add rsp, 32
   mov rbx, rax
+  and rbx, 0xFF
   sub rsp, 32
   call __PULL8
   add rsp, 32
+  and rax, 0xFF
   shl rax, 8
   or rbx, rax
+  and rbx, 0xFFFF
   sub rsp, 32
   call __PULL8
   add rsp, 32
   mov rcx, rax
+  and rcx, 0xFF
   shl rcx, 16
   or rcx, rbx
   mov rbx, 0x808400
@@ -4832,15 +4836,19 @@ Label_808400:
   call __PULL8
   add rsp, 32
   mov rbx, rax
+  and rbx, 0xFF
   sub rsp, 32
   call __PULL8
   add rsp, 32
+  and rax, 0xFF
   shl rax, 8
   or rbx, rax
+  and rbx, 0xFFFF
   sub rsp, 32
   call __PULL8
   add rsp, 32
   mov rcx, rax
+  and rcx, 0xFF
   shl rcx, 16
   or rcx, rbx
   mov rbx, 0x808404
@@ -4859,15 +4867,19 @@ Label_808400:
   call __PULL8
   add rsp, 32
   mov rbx, rax
+  and rbx, 0xFF
   sub rsp, 32
   call __PULL8
   add rsp, 32
+  and rax, 0xFF
   shl rax, 8
   or rbx, rax
+  and rbx, 0xFFFF
   sub rsp, 32
   call __PULL8
   add rsp, 32
   mov rcx, rax
+  and rcx, 0xFF
   shl rcx, 16
   or rcx, rbx
   mov rbx, 0x808408
@@ -4886,15 +4898,19 @@ Label_808400:
   call __PULL8
   add rsp, 32
   mov rbx, rax
+  and rbx, 0xFF
   sub rsp, 32
   call __PULL8
   add rsp, 32
+  and rax, 0xFF
   shl rax, 8
   or rbx, rax
+  and rbx, 0xFFFF
   sub rsp, 32
   call __PULL8
   add rsp, 32
   mov rcx, rax
+  and rcx, 0xFF
   shl rcx, 16
   or rcx, rbx
   mov rbx, 0x80840C
@@ -6880,12 +6896,15 @@ Label_808520:
   sub rsp, 32
   call __PULL8
   add rsp, 32
-  mov bl, al
+  mov rbx, rax
+  and rbx, 0xFF
   sub rsp, 32
   call __PULL8
   add rsp, 32
-  mov bh, al
-  inc bx
+  and rax, 0xFF
+  shl rax, 8
+  or rbx, rax
+  add rbx, 0x1
   and rbx, 0xFFFF
   mov rcx, 0x800000
   or rcx, rbx
@@ -6900,12 +6919,15 @@ Label_808520:
   sub rsp, 32
   call __PULL8
   add rsp, 32
-  mov bl, al
+  mov rbx, rax
+  and rbx, 0xFF
   sub rsp, 32
   call __PULL8
   add rsp, 32
-  mov bh, al
-  inc bx
+  and rax, 0xFF
+  shl rax, 8
+  or rbx, rax
+  add rbx, 0x1
   and rbx, 0xFFFF
   mov rcx, 0x800000
   or rcx, rbx
@@ -6920,12 +6942,15 @@ Label_808520:
   sub rsp, 32
   call __PULL8
   add rsp, 32
-  mov bl, al
+  mov rbx, rax
+  and rbx, 0xFF
   sub rsp, 32
   call __PULL8
   add rsp, 32
-  mov bh, al
-  inc bx
+  and rax, 0xFF
+  shl rax, 8
+  or rbx, rax
+  add rbx, 0x1
   and rbx, 0xFFFF
   mov rcx, 0x800000
   or rcx, rbx
@@ -6940,12 +6965,15 @@ Label_808520:
   sub rsp, 32
   call __PULL8
   add rsp, 32
-  mov bl, al
+  mov rbx, rax
+  and rbx, 0xFF
   sub rsp, 32
   call __PULL8
   add rsp, 32
-  mov bh, al
-  inc bx
+  and rax, 0xFF
+  shl rax, 8
+  or rbx, rax
+  add rbx, 0x1
   and rbx, 0xFFFF
   mov rcx, 0x800000
   or rcx, rbx
@@ -7610,17 +7638,21 @@ Label_808520:
   sub rsp, 32
   call __PULL8
   add rsp, 32
-  mov bl, al
+  mov rbx, rax
+  and rbx, 0xFF
   sub rsp, 32
   call __PULL8
   add rsp, 32
-  mov bh, al
-  inc bx
+  and rax, 0xFF
+  shl rax, 8
+  or rbx, rax
+  add rbx, 0x1
   and rbx, 0xFFFF
   sub rsp, 32
   call __PULL8
   add rsp, 32
-  movzx rcx, al
+  mov rcx, rax
+  and rcx, 0xFF
   shl rcx, 16
   or rcx, rbx
   mov rbx, 0x8086B0
@@ -7634,17 +7666,21 @@ Label_808520:
   sub rsp, 32
   call __PULL8
   add rsp, 32
-  mov bl, al
+  mov rbx, rax
+  and rbx, 0xFF
   sub rsp, 32
   call __PULL8
   add rsp, 32
-  mov bh, al
-  inc bx
+  and rax, 0xFF
+  shl rax, 8
+  or rbx, rax
+  add rbx, 0x1
   and rbx, 0xFFFF
   sub rsp, 32
   call __PULL8
   add rsp, 32
-  movzx rcx, al
+  mov rcx, rax
+  and rcx, 0xFF
   shl rcx, 16
   or rcx, rbx
   mov rbx, 0x8086B4
@@ -7658,17 +7694,21 @@ Label_808520:
   sub rsp, 32
   call __PULL8
   add rsp, 32
-  mov bl, al
+  mov rbx, rax
+  and rbx, 0xFF
   sub rsp, 32
   call __PULL8
   add rsp, 32
-  mov bh, al
-  inc bx
+  and rax, 0xFF
+  shl rax, 8
+  or rbx, rax
+  add rbx, 0x1
   and rbx, 0xFFFF
   sub rsp, 32
   call __PULL8
   add rsp, 32
-  movzx rcx, al
+  mov rcx, rax
+  and rcx, 0xFF
   shl rcx, 16
   or rcx, rbx
   mov rbx, 0x8086B8
@@ -7682,17 +7722,21 @@ Label_808520:
   sub rsp, 32
   call __PULL8
   add rsp, 32
-  mov bl, al
+  mov rbx, rax
+  and rbx, 0xFF
   sub rsp, 32
   call __PULL8
   add rsp, 32
-  mov bh, al
-  inc bx
+  and rax, 0xFF
+  shl rax, 8
+  or rbx, rax
+  add rbx, 0x1
   and rbx, 0xFFFF
   sub rsp, 32
   call __PULL8
   add rsp, 32
-  movzx rcx, al
+  mov rcx, rax
+  and rcx, 0xFF
   shl rcx, 16
   or rcx, rbx
   mov rbx, 0x8086BC
@@ -9643,8 +9687,8 @@ Label_808820:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regY]
-  dec ax
+  movzx rax, word [rel regY]
+  sub rax, 0x1
   mov word [rel regY], ax
   call __UpdateNZ_Y16
   add qword [rel CycleCount], 2
@@ -9653,8 +9697,8 @@ Label_808820:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regY]
-  dec ax
+  movzx rax, word [rel regY]
+  sub rax, 0x1
   mov word [rel regY], ax
   call __UpdateNZ_Y8
   add qword [rel CycleCount], 2
@@ -9663,8 +9707,8 @@ Label_808820:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regY]
-  dec ax
+  movzx rax, word [rel regY]
+  sub rax, 0x1
   mov word [rel regY], ax
   call __UpdateNZ_Y16
   add qword [rel CycleCount], 2
@@ -9673,8 +9717,8 @@ Label_808820:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regY]
-  dec ax
+  movzx rax, word [rel regY]
+  sub rax, 0x1
   mov word [rel regY], ax
   call __UpdateNZ_Y8
   add qword [rel CycleCount], 2
@@ -13490,8 +13534,8 @@ Label_808C00:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regX]
-  dec ax
+  movzx rax, word [rel regX]
+  sub rax, 0x1
   mov word [rel regX], ax
   call __UpdateNZ_X16
   add qword [rel CycleCount], 2
@@ -13500,8 +13544,8 @@ Label_808C00:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regX]
-  dec ax
+  movzx rax, word [rel regX]
+  sub rax, 0x1
   mov word [rel regX], ax
   call __UpdateNZ_X8
   add qword [rel CycleCount], 2
@@ -13510,8 +13554,8 @@ Label_808C00:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regX]
-  dec ax
+  movzx rax, word [rel regX]
+  sub rax, 0x1
   mov word [rel regX], ax
   call __UpdateNZ_X16
   add qword [rel CycleCount], 2
@@ -13520,8 +13564,8 @@ Label_808C00:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regX]
-  dec ax
+  movzx rax, word [rel regX]
+  sub rax, 0x1
   mov word [rel regX], ax
   call __UpdateNZ_X8
   add qword [rel CycleCount], 2
@@ -15730,10 +15774,13 @@ Label_808D20:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regA]
-  mov bl, al
-  mov al, ah
-  mov ah, bl
+  movzx rax, word [rel regA]
+  mov rdx, rax
+  and rdx, 0xFF
+  shl rdx, 8
+  shr rax, 8
+  and rax, 0xFF
+  or rax, rdx
   mov word [rel regA], ax
   call __UpdateNZ_A8
   add qword [rel CycleCount], 3
@@ -15742,10 +15789,13 @@ Label_808D20:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regA]
-  mov bl, al
-  mov al, ah
-  mov ah, bl
+  movzx rax, word [rel regA]
+  mov rdx, rax
+  and rdx, 0xFF
+  shl rdx, 8
+  shr rax, 8
+  and rax, 0xFF
+  or rax, rdx
   mov word [rel regA], ax
   call __UpdateNZ_A8
   add qword [rel CycleCount], 3
@@ -15754,10 +15804,13 @@ Label_808D20:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regA]
-  mov bl, al
-  mov al, ah
-  mov ah, bl
+  movzx rax, word [rel regA]
+  mov rdx, rax
+  and rdx, 0xFF
+  shl rdx, 8
+  shr rax, 8
+  and rax, 0xFF
+  or rax, rdx
   mov word [rel regA], ax
   call __UpdateNZ_A8
   add qword [rel CycleCount], 3
@@ -15766,10 +15819,13 @@ Label_808D20:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regA]
-  mov bl, al
-  mov al, ah
-  mov ah, bl
+  movzx rax, word [rel regA]
+  mov rdx, rax
+  and rdx, 0xFF
+  shl rdx, 8
+  shr rax, 8
+  and rax, 0xFF
+  or rax, rdx
   mov word [rel regA], ax
   call __UpdateNZ_A8
   add qword [rel CycleCount], 3
