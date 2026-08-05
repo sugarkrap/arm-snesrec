@@ -19,7 +19,21 @@ DESCRIPTION
 
 #define SNES_WIDTH  (256)
 #define SNES_HEIGHT (224)
-#define NMI_CYCLES  (100000) // Should probably be 89342 (NTSC)
+/*
+ * Cycles per frame, in the units CycleCount actually accumulates.
+ *
+ * This is NOT the SNES's 89342 master cycles: ADD_CYCLES adds the decoder's
+ * per-instruction cycle counts, which are a different unit, so the constant
+ * has to be calibrated against observed behaviour rather than copied from the
+ * hardware figure.
+ *
+ * Measured by diffing execution ORDER against the interpreter on FF6: the
+ * interpreter left its vblank wait loop every ~12484 instructions, the
+ * recompiled binary every ~37450 -- a 3x slow frame, which made the game
+ * appear stuck when it was merely running at a third of the pace. 100000/3
+ * puts the cadence back in step.
+ */
+#define NMI_CYCLES  (40000)
 
 int inNMI = 0;
 uint8_t regDBR=0;
