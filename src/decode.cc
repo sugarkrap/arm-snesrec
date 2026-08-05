@@ -1894,15 +1894,15 @@ void decode_65C816(CodeAddr ca)
     int cycles = 2;
     if (ca.M) {
       uint8_t v = INS_GETA0(ca.ins);
-      E->raw("  mov al, byte [rel regA]\n");
-      E->raw("  and al, 0x%02X\n", v);
-      E->raw("  mov byte [rel regA], al\n");
+      E->load_sym(VR_TMP, "regA", EW8);
+      E->alu_imm(EA_AND, VR_TMP, v);
+      E->store_sym("regA", VR_TMP, EW8);
     } else {
       cycles++;
       uint16_t v = INS_GETA10(ca.ins);
-      E->raw("  mov ax, word [rel regA]\n");
-      E->raw("  and ax, 0x%04X\n", v);
-      E->raw("  mov word [rel regA], ax\n");
+      E->load_sym(VR_TMP, "regA", EW16);
+      E->alu_imm(EA_AND, VR_TMP, v);
+      E->store_sym("regA", VR_TMP, EW16);
     }
     UPDATE_NZ_A(ca.M);
     ADD_CYCLES(cycles);
@@ -1910,15 +1910,17 @@ void decode_65C816(CodeAddr ca)
   if (op == 0x2D) { // and addr
     int cycles = 4;
     uint16_t address = INS_GETA10(ca.ins);
-    E->raw("  movzx rcx, byte [rel regDBR]\n");
-    E->raw("  shl rcx, 16\n");
-    E->raw("  add rcx, 0x%04X\n", address);
+    LOAD_DBR_ADDR(VR_ARG0, address);
     if (ca.M) {
       CALL_FUNCTION_STK("__READ8");
-      E->raw("  and byte [rel regA], al\n");
+      E->load_sym(VR_SAVE, "regA", EW8);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW8);
     } else {
       CALL_FUNCTION_STK("__READ16");
-      E->raw("  and word [rel regA], ax\n");
+      E->load_sym(VR_SAVE, "regA", EW16);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW16);
       cycles++;
     }
     UPDATE_NZ_A(ca.M);
@@ -1931,10 +1933,14 @@ void decode_65C816(CodeAddr ca)
     APPLY_IDX_OFFSET(VR_ARG0, VR_TMP, "regX");
     if (ca.M) {
       CALL_FUNCTION_STK("__READ8");
-      E->raw("  and byte [rel regA], al\n");
+      E->load_sym(VR_SAVE, "regA", EW8);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW8);
     } else {
       CALL_FUNCTION_STK("__READ16");
-      E->raw("  and word [rel regA], ax\n");
+      E->load_sym(VR_SAVE, "regA", EW16);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW16);
       cycles++;
     }
     UPDATE_NZ_A(ca.M);
@@ -1947,10 +1953,14 @@ void decode_65C816(CodeAddr ca)
     APPLY_IDX_OFFSET(VR_ARG0, VR_TMP, "regY");
     if (ca.M) {
       CALL_FUNCTION_STK("__READ8");
-      E->raw("  and byte [rel regA], al\n");
+      E->load_sym(VR_SAVE, "regA", EW8);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW8);
     } else {
       CALL_FUNCTION_STK("__READ16");
-      E->raw("  and word [rel regA], ax\n");
+      E->load_sym(VR_SAVE, "regA", EW16);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW16);
       cycles++;
     }
     UPDATE_NZ_A(ca.M);
@@ -1959,13 +1969,17 @@ void decode_65C816(CodeAddr ca)
   if (op == 0x2F) { // and long
     int cycles = 5;
     uint32_t longaddr = INS_GETA210(ca.ins);
-    E->raw("  mov rcx, 0x%06X\n", longaddr);
+    E->mov_reg_imm(VR_ARG0, longaddr);
     if (ca.M) {
       CALL_FUNCTION_STK("__READ8");
-      E->raw("  and byte [rel regA], al\n");
+      E->load_sym(VR_SAVE, "regA", EW8);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW8);
     } else {
       CALL_FUNCTION_STK("__READ16");
-      E->raw("  and word [rel regA], ax\n");
+      E->load_sym(VR_SAVE, "regA", EW16);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW16);
       cycles++;
     }
     UPDATE_NZ_A(ca.M);
@@ -1974,14 +1988,18 @@ void decode_65C816(CodeAddr ca)
   if (op == 0x3F) { // and long, x
     int cycles = 5;
     uint32_t longaddr = INS_GETA210(ca.ins);
-    E->raw("  mov rcx, 0x%06X\n", longaddr);
+    E->mov_reg_imm(VR_ARG0, longaddr);
     APPLY_IDX_OFFSET(VR_ARG0, VR_TMP, "regX");
     if (ca.M) {
       CALL_FUNCTION_STK("__READ8");
-      E->raw("  and byte [rel regA], al\n");
+      E->load_sym(VR_SAVE, "regA", EW8);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW8);
     } else {
       CALL_FUNCTION_STK("__READ16");
-      E->raw("  and word [rel regA], ax\n");
+      E->load_sym(VR_SAVE, "regA", EW16);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW16);
       cycles++;
     }
     UPDATE_NZ_A(ca.M);
@@ -1990,14 +2008,17 @@ void decode_65C816(CodeAddr ca)
   if (op == 0x25) { // and dp
     int cycles = 3;
     uint8_t offset = INS_GETA0(ca.ins);
-    E->raw("  movzx rcx, word [rel regDP]\n");
-    E->raw("  add rcx, 0x%02X\n", offset);
+    LOAD_DP(VR_ARG0, offset);
     if (ca.M) {
       CALL_FUNCTION_STK("__READ8");
-      E->raw("  and byte [rel regA], al\n");
+      E->load_sym(VR_SAVE, "regA", EW8);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW8);
     } else {
       CALL_FUNCTION_STK("__READ16");
-      E->raw("  and word [rel regA], ax\n");
+      E->load_sym(VR_SAVE, "regA", EW16);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW16);
       cycles++;
     }
     UPDATE_NZ_A(ca.M);
@@ -2006,19 +2027,18 @@ void decode_65C816(CodeAddr ca)
   if (op == 0x35) { // and dp, x
     int cycles = 4;
     uint8_t offset = INS_GETA0(ca.ins);
-    E->raw("  movzx rcx, word [rel regDP]\n");
-    E->raw("  add rcx, 0x%02X\n", offset);
-    E->raw("  movzx rax, word [rel regX]\n");
-    if (ca.X) {
-      E->raw("  and rax, 0xFF\n");
-    }
-    E->raw("  add rcx, rax\n");
+    LOAD_DP(VR_ARG0, offset);
+    APPLY_IDX_OFFSET(VR_ARG0, VR_TMP, "regX");
     if (ca.M) {
       CALL_FUNCTION_STK("__READ8");
-      E->raw("  and byte [rel regA], al\n");
+      E->load_sym(VR_SAVE, "regA", EW8);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW8);
     } else {
       CALL_FUNCTION_STK("__READ16");
-      E->raw("  and word [rel regA], ax\n");
+      E->load_sym(VR_SAVE, "regA", EW16);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW16);
       cycles++;
     }
     UPDATE_NZ_A(ca.M);
@@ -2027,19 +2047,21 @@ void decode_65C816(CodeAddr ca)
   if (op == 0x32) { // and (dp)
     int cycles = 5;
     uint8_t offset = INS_GETA0(ca.ins);
-    E->raw("  movzx rcx, word [rel regDP]\n");
-    E->raw("  add rcx, 0x%02X\n", offset);
-    E->raw("  and rcx, 0xFFFF\n");
+    LOAD_DP(VR_ARG0, offset);
     CALL_FUNCTION_STK("__READ16");
-    E->raw("  movzx rcx, byte [rel regDBR]\n");
-    E->raw("  shl rcx, 16\n");
-    E->raw("  add rcx, rax\n");
+    E->load_sym(VR_ARG0, "regDBR", EW8);
+    E->alu_imm(EA_SHL, VR_ARG0, 16);
+    E->alu_reg(EA_ADD, VR_ARG0, VR_TMP);
     if (ca.M) {
       CALL_FUNCTION_STK("__READ8");
-      E->raw("  and byte [rel regA], al\n");
+      E->load_sym(VR_SAVE, "regA", EW8);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW8);
     } else {
       CALL_FUNCTION_STK("__READ16");
-      E->raw("  and word [rel regA], ax\n");
+      E->load_sym(VR_SAVE, "regA", EW16);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW16);
       cycles++;
     }
     UPDATE_NZ_A(ca.M);
@@ -2048,20 +2070,22 @@ void decode_65C816(CodeAddr ca)
   if (op == 0x31) { // and (dp), y
     int cycles = 6;
     uint8_t offset = INS_GETA0(ca.ins);
-    E->raw("  movzx rcx, word [rel regDP]\n");
-    E->raw("  add rcx, 0x%02X\n", offset);
-    E->raw("  and rcx, 0xFFFF\n");
+    LOAD_DP(VR_ARG0, offset);
     CALL_FUNCTION_STK("__READ16");
-    E->raw("  movzx rcx, byte [rel regDBR]\n");
-    E->raw("  shl rcx, 16\n");
-    E->raw("  add rcx, rax\n");
+    E->load_sym(VR_ARG0, "regDBR", EW8);
+    E->alu_imm(EA_SHL, VR_ARG0, 16);
+    E->alu_reg(EA_ADD, VR_ARG0, VR_TMP);
     APPLY_IDX_OFFSET(VR_ARG0, VR_TMP, "regY");
     if (ca.M) {
       CALL_FUNCTION_STK("__READ8");
-      E->raw("  and byte [rel regA], al\n");
+      E->load_sym(VR_SAVE, "regA", EW8);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW8);
     } else {
       CALL_FUNCTION_STK("__READ16");
-      E->raw("  and word [rel regA], ax\n");
+      E->load_sym(VR_SAVE, "regA", EW16);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW16);
       cycles++;
     }
     UPDATE_NZ_A(ca.M);
@@ -2070,24 +2094,23 @@ void decode_65C816(CodeAddr ca)
   if (op == 0x21) { // and (dp, x)
     int cycles = 3;
     uint8_t offset = INS_GETA0(ca.ins);
-    E->raw("  movzx rcx, word [rel regDP]\n");
-    E->raw("  add rcx, 0x%02X\n", offset);
-    E->raw("  movzx rax, word [rel regX]\n");
-    if (ca.X) {
-      E->raw("  and rax, 0xFF\n");
-    }
-    E->raw("  add rcx, rax\n");
-    E->raw("  and rcx, 0xFFFF\n");
+    LOAD_DP(VR_ARG0, offset);
+    APPLY_IDX_OFFSET(VR_ARG0, VR_TMP, "regX");
+    E->alu_imm(EA_AND, VR_ARG0, 0xFFFF);
     CALL_FUNCTION_STK("__READ16");
-    E->raw("  movzx rcx, byte [rel regDBR]\n");
-    E->raw("  shl rcx, 16\n");
-    E->raw("  add rcx, rax\n");
+    E->load_sym(VR_ARG0, "regDBR", EW8);
+    E->alu_imm(EA_SHL, VR_ARG0, 16);
+    E->alu_reg(EA_ADD, VR_ARG0, VR_TMP);
     if (ca.M) {
       CALL_FUNCTION_STK("__READ8");
-      E->raw("  and byte [rel regA], al\n");
+      E->load_sym(VR_SAVE, "regA", EW8);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW8);
     } else {
       CALL_FUNCTION_STK("__READ16");
-      E->raw("  and word [rel regA], ax\n");
+      E->load_sym(VR_SAVE, "regA", EW16);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW16);
       cycles++;
     }
     UPDATE_NZ_A(ca.M);
@@ -2096,16 +2119,19 @@ void decode_65C816(CodeAddr ca)
   if (op == 0x27) { // and [dp] (long)
     int cycles = 6;
     uint8_t offset = INS_GETA0(ca.ins);
-    E->raw("  movzx rcx, word [rel regDP]\n");
-    E->raw("  add rcx, 0x%02X\n", offset);
+    LOAD_DP(VR_ARG0, offset);
     CALL_FUNCTION_STK("__READ24");
-    E->raw("  mov rcx, rax\n");
+    E->mov_reg_reg(VR_ARG0, VR_TMP);
     if (ca.M) {
       CALL_FUNCTION_STK("__READ8");
-      E->raw("  and byte [rel regA], al\n");
+      E->load_sym(VR_SAVE, "regA", EW8);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW8);
     } else {
       CALL_FUNCTION_STK("__READ16");
-      E->raw("  and word [rel regA], ax\n");
+      E->load_sym(VR_SAVE, "regA", EW16);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW16);
     }
     UPDATE_NZ_A(ca.M);
     ADD_CYCLES(cycles);
@@ -2113,17 +2139,20 @@ void decode_65C816(CodeAddr ca)
   if (op == 0x37) { // and [dp], y (long)
     int cycles = 6;
     uint8_t offset = INS_GETA0(ca.ins);
-    E->raw("  movzx rcx, word [rel regDP]\n");
-    E->raw("  add rcx, 0x%02X\n", offset);
+    LOAD_DP(VR_ARG0, offset);
     CALL_FUNCTION_STK("__READ24");
-    E->raw("  mov rcx, rax\n");
+    E->mov_reg_reg(VR_ARG0, VR_TMP);
     APPLY_IDX_OFFSET(VR_ARG0, VR_TMP, "regY");
     if (ca.M) {
       CALL_FUNCTION_STK("__READ8");
-      E->raw("  and byte [rel regA], al\n");
+      E->load_sym(VR_SAVE, "regA", EW8);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW8);
     } else {
       CALL_FUNCTION_STK("__READ16");
-      E->raw("  and word [rel regA], ax\n");
+      E->load_sym(VR_SAVE, "regA", EW16);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW16);
     }
     UPDATE_NZ_A(ca.M);
     ADD_CYCLES(cycles);
@@ -2134,10 +2163,14 @@ void decode_65C816(CodeAddr ca)
     LOAD_SR(VR_ARG0, offset);
     if (ca.M) {
       CALL_FUNCTION_STK("__READ8");
-      E->raw("  and byte [rel regA], al\n");
+      E->load_sym(VR_SAVE, "regA", EW8);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW8);
     } else {
       CALL_FUNCTION_STK("__READ16");
-      E->raw("  and word [rel regA], ax\n");
+      E->load_sym(VR_SAVE, "regA", EW16);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW16);
     }
     UPDATE_NZ_A(ca.M);
     ADD_CYCLES(cycles);
@@ -2147,20 +2180,24 @@ void decode_65C816(CodeAddr ca)
     uint8_t offset = INS_GETA0(ca.ins);
     LOAD_SR(VR_ARG0, offset);
     CALL_FUNCTION_STK("__READ16");
-    E->raw("  movzx rcx, word [rel regY]\n");
+    E->load_sym(VR_ARG0, "regY", EW16);
     if (ca.X) {
-      E->raw("  and rcx, 0xFF\n");
+      E->alu_imm(EA_AND, VR_ARG0, 0xFF);
     }
-    E->raw("  add rcx, rax\n");
-    E->raw("  movzx rax, byte [rel regDBR]\n");
-    E->raw("  shl rax, 16\n");
-    E->raw("  or rcx, rax\n");
+    E->alu_reg(EA_ADD, VR_ARG0, VR_TMP);
+    E->load_sym(VR_TMP, "regDBR", EW8);
+    E->alu_imm(EA_SHL, VR_TMP, 16);
+    E->alu_reg(EA_OR, VR_ARG0, VR_TMP);
     if (ca.M) {
       CALL_FUNCTION_STK("__READ8");
-      E->raw("  and byte [rel regA], al\n");
+      E->load_sym(VR_SAVE, "regA", EW8);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW8);
     } else {
       CALL_FUNCTION_STK("__READ16");
-      E->raw("  and word [rel regA], ax\n");
+      E->load_sym(VR_SAVE, "regA", EW16);
+      E->alu_reg(EA_AND, VR_SAVE, VR_TMP);
+      E->store_sym("regA", VR_SAVE, EW16);
     }
     UPDATE_NZ_A(ca.M);
     ADD_CYCLES(cycles);

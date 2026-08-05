@@ -2490,6 +2490,7 @@ Label_808200:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   movzx rax, word [rel regX]
   add rcx, rax
   and rcx, 0xFFFF
@@ -2502,7 +2503,9 @@ Label_808200:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 4
   ; -- 808214 --
@@ -2512,6 +2515,7 @@ Label_808200:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   movzx rax, word [rel regX]
   and rax, 0xFF
   add rcx, rax
@@ -2525,7 +2529,9 @@ Label_808200:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 4
   ; -- 808218 --
@@ -2535,6 +2541,7 @@ Label_808200:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   movzx rax, word [rel regX]
   add rcx, rax
   and rcx, 0xFFFF
@@ -2547,7 +2554,9 @@ Label_808200:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 3
   ; -- 80821C --
@@ -2557,6 +2566,7 @@ Label_808200:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   movzx rax, word [rel regX]
   and rax, 0xFF
   add rcx, rax
@@ -2570,7 +2580,9 @@ Label_808200:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 3
   ; -- 808220 --
@@ -2667,7 +2679,9 @@ Label_808200:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 4
   ; -- 808234 --
@@ -2680,7 +2694,9 @@ Label_808200:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 4
   ; -- 808238 --
@@ -2693,7 +2709,9 @@ Label_808200:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 4
   ; -- 80823C --
@@ -2706,7 +2724,9 @@ Label_808200:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 4
   ; -- 808240 --
@@ -2780,10 +2800,13 @@ Label_808200:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 4
   ; -- 808254 --
@@ -2793,10 +2816,13 @@ Label_808200:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 4
   ; -- 808258 --
@@ -2806,10 +2832,13 @@ Label_808200:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 3
   ; -- 80825C --
@@ -2819,10 +2848,13 @@ Label_808200:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 3
   ; -- 808260 --
@@ -2920,6 +2952,7 @@ Label_808200:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   sub rsp, 32
   call __READ24
   add rsp, 32
@@ -2927,7 +2960,9 @@ Label_808200:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 6
   ; -- 808274 --
@@ -2937,6 +2972,7 @@ Label_808200:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   sub rsp, 32
   call __READ24
   add rsp, 32
@@ -2944,7 +2980,9 @@ Label_808200:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 6
   ; -- 808278 --
@@ -2954,6 +2992,7 @@ Label_808200:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   sub rsp, 32
   call __READ24
   add rsp, 32
@@ -2961,7 +3000,9 @@ Label_808200:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 6
   ; -- 80827C --
@@ -2971,6 +3012,7 @@ Label_808200:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   sub rsp, 32
   call __READ24
   add rsp, 32
@@ -2978,7 +3020,9 @@ Label_808200:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 6
   ; -- 808280 --
@@ -3022,8 +3066,8 @@ Label_808200:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regA]
-  and ax, 0x3412
+  movzx rax, word [rel regA]
+  and rax, 0x3412
   mov word [rel regA], ax
   call __UpdateNZ_A16
   add qword [rel CycleCount], 3
@@ -3032,8 +3076,8 @@ Label_808200:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov ax, word [rel regA]
-  and ax, 0x3412
+  movzx rax, word [rel regA]
+  and rax, 0x3412
   mov word [rel regA], ax
   call __UpdateNZ_A16
   add qword [rel CycleCount], 3
@@ -3042,8 +3086,8 @@ Label_808200:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov al, byte [rel regA]
-  and al, 0x12
+  movzx rax, byte [rel regA]
+  and rax, 0x12
   mov byte [rel regA], al
   call __UpdateNZ_A8
   add qword [rel CycleCount], 2
@@ -3052,8 +3096,8 @@ Label_808200:
   sub rsp, 32
   call __CPUSync
   add rsp, 32
-  mov al, byte [rel regA]
-  and al, 0x12
+  movzx rax, byte [rel regA]
+  and rax, 0x12
   mov byte [rel regA], al
   call __UpdateNZ_A8
   add qword [rel CycleCount], 2
@@ -3232,7 +3276,9 @@ Label_808200:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 5
   ; -- 8082D4 --
@@ -3246,7 +3292,9 @@ Label_808200:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 5
   ; -- 8082D8 --
@@ -3260,7 +3308,9 @@ Label_808200:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 4
   ; -- 8082DC --
@@ -3274,7 +3324,9 @@ Label_808200:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 4
   ; -- 8082E0 --
@@ -3374,7 +3426,9 @@ Label_808200:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 6
   ; -- 8082F4 --
@@ -3386,7 +3440,9 @@ Label_808200:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 6
   ; -- 8082F8 --
@@ -3398,7 +3454,9 @@ Label_808200:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 5
   ; -- 8082FC --
@@ -3410,7 +3468,9 @@ Label_808200:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 5
 
@@ -3465,7 +3525,9 @@ Label_808300:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 7
   ; -- 808314 --
@@ -3488,7 +3550,9 @@ Label_808300:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 7
   ; -- 808318 --
@@ -3510,7 +3574,9 @@ Label_808300:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 6
   ; -- 80831C --
@@ -3533,7 +3599,9 @@ Label_808300:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 6
   ; -- 808320 --
@@ -3553,7 +3621,9 @@ Label_808300:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 6
   ; -- 808324 --
@@ -3573,7 +3643,9 @@ Label_808300:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 6
   ; -- 808328 --
@@ -3593,7 +3665,9 @@ Label_808300:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 5
   ; -- 80832C --
@@ -3613,7 +3687,9 @@ Label_808300:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 5
   ; -- 808330 --
@@ -3634,7 +3710,9 @@ Label_808300:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 7
   ; -- 808334 --
@@ -3656,7 +3734,9 @@ Label_808300:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 7
   ; -- 808338 --
@@ -3677,7 +3757,9 @@ Label_808300:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 7
   ; -- 80833C --
@@ -3699,7 +3781,9 @@ Label_808300:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 7
   ; -- 808340 --
@@ -3783,12 +3867,15 @@ Label_808300:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   movzx rax, word [rel regX]
   add rcx, rax
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 5
   ; -- 808354 --
@@ -3798,13 +3885,16 @@ Label_808300:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   movzx rax, word [rel regX]
   and rax, 0xFF
   add rcx, rax
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 5
   ; -- 808358 --
@@ -3814,12 +3904,15 @@ Label_808300:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   movzx rax, word [rel regX]
   add rcx, rax
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 4
   ; -- 80835C --
@@ -3829,13 +3922,16 @@ Label_808300:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   movzx rax, word [rel regX]
   and rax, 0xFF
   add rcx, rax
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 4
   ; -- 808360 --
@@ -3943,6 +4039,7 @@ Label_808300:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   sub rsp, 32
   call __READ24
   add rsp, 32
@@ -3952,7 +4049,9 @@ Label_808300:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 6
   ; -- 808374 --
@@ -3962,6 +4061,7 @@ Label_808300:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   sub rsp, 32
   call __READ24
   add rsp, 32
@@ -3972,7 +4072,9 @@ Label_808300:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 6
   ; -- 808378 --
@@ -3982,6 +4084,7 @@ Label_808300:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   sub rsp, 32
   call __READ24
   add rsp, 32
@@ -3991,7 +4094,9 @@ Label_808300:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 6
   ; -- 80837C --
@@ -4001,6 +4106,7 @@ Label_808300:
   add rsp, 32
   movzx rcx, word [rel regDP]
   add rcx, 0x12
+  and rcx, 0xFFFF
   sub rsp, 32
   call __READ24
   add rsp, 32
@@ -4011,7 +4117,9 @@ Label_808300:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 6
   ; -- 808380 --
@@ -4055,7 +4163,9 @@ Label_808300:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 5
   ; -- 808394 --
@@ -4072,7 +4182,9 @@ Label_808300:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 5
   ; -- 808398 --
@@ -4088,7 +4200,9 @@ Label_808300:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 4
   ; -- 80839C --
@@ -4105,7 +4219,9 @@ Label_808300:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 4
   ; -- 8083A0 --
@@ -4271,7 +4387,9 @@ Label_808300:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 5
   ; -- 8083D4 --
@@ -4288,7 +4406,9 @@ Label_808300:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 5
   ; -- 8083D8 --
@@ -4304,7 +4424,9 @@ Label_808300:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 4
   ; -- 8083DC --
@@ -4321,7 +4443,9 @@ Label_808300:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 4
   ; -- 8083E0 --
@@ -4433,7 +4557,9 @@ Label_808300:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 6
   ; -- 8083F4 --
@@ -4448,7 +4574,9 @@ Label_808300:
   sub rsp, 32
   call __READ16
   add rsp, 32
-  and word [rel regA], ax
+  movzx r12, word [rel regA]
+  and r12, rax
+  mov word [rel regA], r12w
   call __UpdateNZ_A16
   add qword [rel CycleCount], 6
   ; -- 8083F8 --
@@ -4462,7 +4590,9 @@ Label_808300:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 5
   ; -- 8083FC --
@@ -4477,7 +4607,9 @@ Label_808300:
   sub rsp, 32
   call __READ8
   add rsp, 32
-  and byte [rel regA], al
+  movzx r12, byte [rel regA]
+  and r12, rax
+  mov byte [rel regA], r12b
   call __UpdateNZ_A8
   add qword [rel CycleCount], 5
 
