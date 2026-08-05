@@ -152,6 +152,24 @@ int main(int argc, char **argv)
                       "they will dispatch to __JUMP_FAILED\n",
               routines.size() - kept.size(), routines.size());
     routines = kept;
+
+    /*
+     * Every traced address is a jump target, not just the entry points.
+     *
+     * `routines` held only the trace's type-1 rows, and that one set drives
+     * BOTH which addresses get a label and which get a dispatch entry -- so an
+     * address the trace covered but never entered from outside had neither. A
+     * static `JMP $6D58` at C36D55 could then not be emitted as a direct jump
+     * (no label to name) and fell back to __CALL_ADDRESS, which had no entry
+     * for it either, so it died in __JUMP_FAILED -- on an address whose code
+     * was sitting in the very next emitted block. RTS/RTL are worse off still,
+     * since a return lands mid-routine by definition.
+     *
+     * Every traced instruction starts a block that was generated, so every one
+     * of them can be named and dispatched to. The dispatch is a binary search,
+     * so going from ~1.6k entries to ~17k costs about three more compares.
+     */
+    routines.assign(traced.begin(), traced.end());
   }
 
   E->prologue();
