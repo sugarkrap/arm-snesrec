@@ -155,6 +155,7 @@ uint8_t apu_out[4] = { 0x00, 0x00, 0x00, 0x00 };  /* CPU -> APU: writes land her
 int ipl_busy = 0;                                 /* has the $CC kick happened? */
 uint8_t ipl_ctr = 0;                              /* next byte counter the IPL expects */
 int ipl_handover = 0;                             /* end kick echoed; driver about to start */
+int driver_running = 0;                           /* upload finished at least once */
 int apu_log_on = 0;                               /* SNESREC_APULOG diagnostic */
 /* The VMADDL/VMADDH tracing was left switched on unconditionally while its
  * neighbours were commented out, so every run buried its own output under a
@@ -1148,12 +1149,27 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
          * there -- one stall EARLIER than the one being fixed. */
         if (ipl_handover) { ipl_handover = 0; apu_in[0] = 0xAA; apu_in[1] = 0xBB; }
         if (v == 0xCC) { ipl_busy = 1; ipl_ctr = 0; apu_in[0] = 0xCC; }
+        else if (driver_running) {
+          /* Command acknowledgement. Once the uploaded driver is running,
+           * FF6 talks to it by writing a command byte to $2140 (with params
+           * in $2141/$2142) and spinning until $2140 reads that byte back:
+           *
+           *     C501B0  LDA $00 / STA $2140
+           *     C501B5  CMP $2140
+           *     C501B8  BNE $C501B5
+           *
+           * so the ack IS the echo. There is no SPC700 here to act on the
+           * command, and nothing yet needs one to -- the game only waits for
+           * receipt. Sound will be silent; the game proceeds. */
+          apu_in[0] = v;
+        }
         /* anything else: ignored, so the ready signature stays readable */
       } else if (v == ipl_ctr) {
         apu_in[0] = v; ipl_ctr++;              /* byte accepted */
       } else if (apu_out[1] == 0) {
         apu_in[0] = v;                         /* the end kick is echoed too */
         ipl_busy = 0; ipl_handover = 1;        /* driver starts running */
+        driver_running = 1;
       } else {
         ipl_ctr = 0; apu_in[0] = v;            /* a further block follows */
       }
