@@ -132,8 +132,26 @@ DMA dma;
  * Echoing writes back satisfies the echo-wait without emulating anything.
  * This is a stub, not an APU: it gets a game past the handshake, and any
  * routine that depends on the SPC actually doing something will still fail.
+ *
+ * The echo must NOT be a single array shared by both directions, which is what
+ * this was and why FF6 hung. $2140-$2143 are two independent sets of latches:
+ * a CPU write goes to the SPC's input registers, a CPU read comes from the
+ * SPC's output registers, and a write is not observable by a subsequent read.
+ * Collapsing them into one array means a store to $2140 overwrites the ready
+ * signature, so FF6's boot check
+ *
+ *     C50049  LDX #$BBAA
+ *     C5004C  LDY #$F0FF
+ *     C5004F  STY $2140      ; clobbers the $AA the next line is waiting for
+ *     C50052  CPX $2140
+ *     C50055  BNE $C5004F
+ *
+ * could never come out true, and the recompiled binary spun on those three
+ * instructions forever. Hence two arrays.
  */
-uint8_t apu_port[4] = { 0xAA, 0xBB, 0x00, 0x00 };
+uint8_t apu_in[4]  = { 0xAA, 0xBB, 0x00, 0x00 };  /* APU -> CPU: reads see this */
+uint8_t apu_out[4] = { 0x00, 0x00, 0x00, 0x00 };  /* CPU -> APU: writes land here */
+int ipl_busy = 0;                                 /* has the $CC kick happened? */
 
 /* Diagnostic: which IO register is the game spinning on? Enabled by
  * SNESREC_IOSTATS, dumped at exit. One array increment per IO read. */
@@ -886,7 +904,7 @@ extern "C" uint8_t __READ8(uint32_t addr)
     return ppu.STAT78;
   } else
   if (addr >= 0x2140 && addr <= 0x2143 /* APUIO0-3 */) {
-    return apu_port[addr - 0x2140];
+    return apu_in[addr - 0x2140];
   } else
   if (addr == 0x4214 /* RDDIVL */) {
     return io.RDDIVL;
@@ -998,10 +1016,17 @@ extern "C" void __WRITE8(uint32_t addr, uint32_t value)
   // if (offset == 0x210D)
     // printf("__WRITE8(addr=0x%06X, value=0x%02X)\n", addr, v);
   
-  /* APU ports: echo the write back so the IPL handshake's echo-wait completes.
-   * See apu_port's definition for why a constant is not enough. */
+  /* APU ports: writes land in the CPU->APU latch, which is NOT the latch reads
+   * come from. See apu_in's definition. */
   if (offset >= 0x2140 && offset <= 0x2143) {
-    apu_port[offset - 0x2140] = v;
+    apu_out[offset - 0x2140] = v;
+    /* $CC on port 0 is the IPL's "begin upload" kick. Before it, the ready
+     * signature must stay readable; after it, port 0 echoes each byte counter
+     * so the per-byte echo-wait completes. */
+    if (offset == 0x2140) {
+      if (ipl_busy)        apu_in[0] = v;
+      else if (v == 0xCC) { ipl_busy = 1; apu_in[0] = 0xCC; }
+    }
     return;
   }
 
