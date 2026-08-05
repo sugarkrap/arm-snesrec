@@ -42,6 +42,27 @@ fi
 echo "PASS: x86_64 output identical to golden ($(wc -l < "$GOLDEN") lines)"
 
 # ---------------------------------------------------------------------------
+# x86_64 System V: does it assemble with the SYSTEM assembler?
+#
+# Cheap and always runnable -- `as` is present wherever gcc is, so unlike the
+# ARM gate this one never skips. It is also the gate that would have caught the
+# Win64 backend being unbuildable on Linux at all.
+# ---------------------------------------------------------------------------
+"$OUT.bin" --target x86_64-sysv tests/fixture.trace tests/fixture.rom > "$OUT.sysv" 2>/dev/null
+sysv_unported=$(grep -c '\.error' "$OUT.sysv" || true)
+if [ "$sysv_unported" -ne 0 ]; then
+    echo "FAIL: x86_64-sysv has $sysv_unported unported site(s)"
+    exit 1
+fi
+if as --64 -o /dev/null "$OUT.sysv" 2> /tmp/recomp-sysv.txt; then
+    echo "PASS: x86_64-sysv assembles ($(grep -c "^	[a-z]" "$OUT.sysv") insns)"
+else
+    echo "FAIL: x86_64-sysv does not assemble:"
+    grep Error /tmp/recomp-sysv.txt | head -n 10
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
 # ARMv5: does the generated assembly actually assemble?
 #
 # The golden above only covers x86_64, so for a long stretch the ARM backend

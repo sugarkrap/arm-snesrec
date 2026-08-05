@@ -24,7 +24,7 @@ unsigned long armv5_unported_sites(void);
 int main(int argc, char **argv)
 {
   /*
-   * usage: recomp [--target x86_64|armv5] <trace> <rom>
+   * usage: recomp [--target x86_64|x86_64-sysv|armv5] <trace> <rom>
    * Default stays x86_64 so existing invocations and the golden check are
    * unaffected.
    */
@@ -33,15 +33,17 @@ int main(int argc, char **argv)
       E = &emit_armv5;
     } else if (strcmp(argv[2], "x86_64") == 0) {
       E = &emit_x86_64;
+    } else if (strcmp(argv[2], "x86_64-sysv") == 0) {
+      E = &emit_x86_64_sysv;
     } else {
-      fprintf(stderr, "unknown target '%s' (want x86_64 or armv5)\n", argv[2]);
+      fprintf(stderr, "unknown target '%s' (want x86_64, x86_64-sysv or armv5)\n", argv[2]);
       return -1;
     }
     argv += 2;
     argc -= 2;
   }
   if (argc < 3) {
-    fprintf(stderr, "usage: recomp [--target x86_64|armv5] <trace> <rom>\n");
+    fprintf(stderr, "usage: recomp [--target x86_64|x86_64-sysv|armv5] <trace> <rom>\n");
     return -1;
   }
 

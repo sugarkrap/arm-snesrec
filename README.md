@@ -130,9 +130,13 @@ Stated plainly so nobody rediscovers these the hard way:
 - **It works, for as far as the trace goes.** Final Fantasy VI, traced on a
   Zaurus and statically recompiled to ARMv5, renders its title screen
   correctly under `qemu-arm` -- and the palette fade animates across frames,
-  so this is real execution rather than a single blit. The same binary runs on
-  the device (opens the w100 framebuffer, correct RGB565 format, burns CPU),
-  though the display there has not been visually confirmed.
+  so this is real execution rather than a single blit. **Confirmed on the
+  device too**: the Zaurus displays the title card from the same binary.
+- **Three backends, cross-checked.** The x86_64 System V build and the ARMv5
+  build render byte-identical frames from the same trace. They share nothing
+  but that trace -- different ABI, different register allocation, different
+  assembler -- so agreement between them is a real correctness signal, not a
+  restatement of one result.
 - **A trace only covers what it saw.** The FF6 trace above is ~2 minutes of
   boot: 11,417 instructions of a 4 MB ROM. Everything outside it has no
   generated code and dispatches to `__JUMP_FAILED`. This is the central

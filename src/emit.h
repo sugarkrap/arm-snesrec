@@ -138,6 +138,7 @@ typedef struct EmitOps {
 
 extern const EmitOps emit_x86_64;
 extern const EmitOps emit_armv5;
+extern const EmitOps emit_x86_64_sysv;   /* Linux: System V ABI, GNU as */
 extern const EmitOps *E;          /* selected backend; defaults to x86_64 */
 
 /*

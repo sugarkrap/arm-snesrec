@@ -4,7 +4,8 @@
 #   make check           run both regression gates
 #   make runtime         build the runtime for the host (fbdev)
 #   make arm-runtime     cross-build the runtime for ARMv5
-#   make game TRACE=t ROM=r    full pipeline -> ./snesrec-arm
+#   make game TRACE=t ROM=r    full pipeline -> ./snesrec-arm  (ARMv5)
+#   make native TRACE=t ROM=r  full pipeline -> ./snesrec-x86  (Linux x86_64)
 #
 # ARM_PREFIX points at a cross toolchain; the default is piko's.
 
@@ -71,5 +72,23 @@ game: recomp arm-runtime
 	$(ARM_CXX) -static -o snesrec-arm generated.o runtime-arm.o platform-arm.o
 	@echo "built ./snesrec-arm"
 
+# Native Linux build: System V ABI, system assembler, no cross toolchain and no
+# emulator. This is the fast way to check whether generated code is correct --
+# and its frames can be diffed against the ARM build's, which is a strong
+# cross-check since the two share nothing but the trace.
+native: recomp
+	@test -n "$(TRACE)" -a -n "$(ROM)" || { echo "usage: make native TRACE=t ROM=r"; exit 1; }
+	./recomp --target x86_64-sysv $(TRACE) $(ROM) > generated-x86.s
+	@if grep -q '\.error' generated-x86.s; then \
+	    echo "FAIL: generated-x86.s has unported site(s):"; \
+	    grep '\.error' generated-x86.s | sed 's/.*UNPORTED x86: /  /' | sort -u; \
+	    exit 1; \
+	fi
+	as --64 -o generated-x86.o generated-x86.s
+	$(CXX) $(CXXFLAGS) -I. -Iplatform -c -o runtime-x86.o runtime.cc
+	$(CXX) $(CXXFLAGS) -Iplatform -c -o platform-x86.o $(PLATFORM_SRC)
+	$(CXX) -no-pie -o snesrec-x86 generated-x86.o runtime-x86.o platform-x86.o
+	@echo "built ./snesrec-x86"
+
 clean:
-	rm -f recomp *.o generated.s generated.o snesrec-arm
+	rm -f recomp *.o generated.s generated.o snesrec-arm generated-x86.s snesrec-x86
