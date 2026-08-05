@@ -151,6 +151,10 @@ typedef struct DMAChannel {
   int A2AL;
   int A2AH;
   int NLTR;
+  /* HDMA running state, reloaded from A1T at the top of every frame. */
+  int hdma_active;              /* table not yet terminated by a 0 count */
+  int hdma_do;                  /* transfer on this line, vs. hold        */
+  int hdma_a2a;                 /* current table pointer, bank = A1B      */
 } DMAChannel;
 
 typedef struct DMA {
@@ -160,6 +164,95 @@ typedef struct DMA {
 } DMA;
 
 void dma_trasfer(DMA *dma, int channel);
+
+/*
+ * HDMA.
+ *
+ * $420C was previously written by nothing and read by nothing: the HDMAEN
+ * field existed in this struct and was never assigned. So every per-scanline
+ * effect a game programmed was dropped on the floor -- FF6 writes that
+ * register about 1800 times per frame. Combined with drawing the whole frame
+ * once at NMI, the result was that whatever register state happened to exist
+ * at NMI got applied to all 224 lines, which is what turned the title
+ * screen's sky gradient into flat horizontal bands.
+ *
+ * Channels are (re)initialised at the top of each frame, which is what the
+ * hardware does at V=0 -- crucially AFTER the NMI handler has run, since that
+ * is where games build the table and enable the channel.
+ */
+void hdma_init(DMA *dma)
+{
+  for (int i = 0; i < 8; ++i) {
+    DMAChannel *ch = &dma->ch[i];
+    if (!(dma->HDMAEN & (1 << i))) { ch->hdma_active = 0; continue; }
+    ch->hdma_a2a    = (ch->A1TH << 8) | ch->A1TL;
+    ch->NLTR        = 0;
+    ch->hdma_do     = 0;
+    ch->hdma_active = 1;
+  }
+}
+
+/* Bytes per transfer unit, and the B-bus offset each of those bytes uses. */
+static const int hdma_unit_len[8]    = { 1, 2, 2, 4, 4, 4, 2, 4 };
+static const int hdma_unit_off[8][4] = {
+  {0,0,0,0}, {0,1,0,0}, {0,0,0,0}, {0,0,1,1},
+  {0,1,2,3}, {0,1,0,1}, {0,0,0,0}, {0,0,1,1},
+};
+
+unsigned long hdma_target_hist[256];
+unsigned long hdma_units;
+
+void hdma_run_line(DMA *dma)
+{
+  for (int i = 0; i < 8; ++i) {
+    DMAChannel *ch = &dma->ch[i];
+    if (!ch->hdma_active || !(dma->HDMAEN & (1 << i))) continue;
+
+    uint32_t bank = (uint32_t)ch->A1B << 16;
+    int indirect  = ch->DMAP & 0x40;
+
+    /*
+     * The low 7 bits are the line count and bit 7 is "repeat". Reaching zero
+     * in the low bits means the current table entry is spent and the next one
+     * is fetched; a count byte of 0 terminates the channel for this frame.
+     */
+    if ((ch->NLTR & 0x7F) == 0) {
+      ch->NLTR = __READ8(bank | ch->hdma_a2a);
+      ch->hdma_a2a = (ch->hdma_a2a + 1) & 0xFFFF;
+      if (ch->NLTR == 0) { ch->hdma_active = 0; continue; }
+      if (indirect) {
+        ch->DASL = __READ8(bank | ch->hdma_a2a);
+        ch->hdma_a2a = (ch->hdma_a2a + 1) & 0xFFFF;
+        ch->DASH = __READ8(bank | ch->hdma_a2a);
+        ch->hdma_a2a = (ch->hdma_a2a + 1) & 0xFFFF;
+      }
+      ch->hdma_do = 1;
+    }
+
+    if (ch->hdma_do) {
+      int mode = ch->DMAP & 7;
+      for (int b = 0; b < hdma_unit_len[mode]; ++b) {
+        uint8_t v;
+        if (indirect) {
+          uint16_t das = (ch->DASH << 8) | ch->DASL;
+          v = __READ8(((uint32_t)ch->DASB << 16) | das);
+          das++;
+          ch->DASL = das & 0xFF;
+          ch->DASH = (das >> 8) & 0xFF;
+        } else {
+          v = __READ8(bank | ch->hdma_a2a);
+          ch->hdma_a2a = (ch->hdma_a2a + 1) & 0xFFFF;
+        }
+        hdma_target_hist[(ch->BBAD + hdma_unit_off[mode][b]) & 0xFF]++;
+        hdma_units++;
+        __WRITE8(0x2100 + ((ch->BBAD + hdma_unit_off[mode][b]) & 0xFF), v);
+      }
+    }
+
+    ch->NLTR--;
+    ch->hdma_do = (ch->NLTR & 0x80) != 0;
+  }
+}
 
 void write_dma(DMA *dma, uint64_t addr, uint8_t v)
 {
@@ -218,6 +311,14 @@ void write_dma(DMA *dma, uint64_t addr, uint8_t v)
       }
       mask >>= 1;
     }
+  }
+  if (addr == 0x420C /* HDMAEN */) {
+    /*
+     * Enabling a channel mid-frame does NOT re-initialise it on hardware --
+     * that only happens at V=0 -- so this just records the mask and lets
+     * hdma_init() pick it up at the top of the next frame.
+     */
+    dma->HDMAEN = v;
   }
 }
 

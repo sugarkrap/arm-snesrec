@@ -36,6 +36,20 @@ DESCRIPTION
  */
 #define NMI_CYCLES  (40000)
 
+/*
+ * The frame is split into vblank and the 224 visible lines, in the same
+ * proportion the hardware uses (38 blank lines out of 262).
+ *
+ * The split has to exist for HDMA to work at all. Games build their HDMA
+ * tables and write $420C from the NMI handler, and NMI here resets
+ * CycleCount to 0 -- so if line 0 began at cycle 0, the frame would be
+ * initialised before the handler that sets it up had run, and every channel
+ * would look disabled. Reserving the front of the frame for vblank puts
+ * hdma_init() after the handler, which is where V=0 sits on hardware.
+ */
+#define VBLANK_CYCLES (NMI_CYCLES * 38 / 262)
+#define ACTIVE_CYCLES (NMI_CYCLES - VBLANK_CYCLES)
+
 int inNMI = 0;
 uint8_t regDBR=0;
 uint16_t regA=0, regX=0, regY=0, regS=0, regDP=0;
@@ -164,6 +178,11 @@ int apu_log_on = 0;                               /* SNESREC_APULOG diagnostic *
 int ppu_log_on = 0;                               /* SNESREC_PPULOG diagnostic */
 int dma_log_on = 0;                               /* SNESREC_DMALOG diagnostic */
 int wram_log_on = 0;                              /* SNESREC_WRAMLOG diagnostic */
+/* SNESREC_LAYERS=<hex>: ANDed with TM, so a single BG or OBJ can be viewed on
+ * its own. Which layer is painting over the picture is otherwise guesswork. */
+int layer_mask = 0x1F;
+/* SNESREC_BLOCKMAP: hardware 4-screen tilemap layout; see draw_bg_scanline. */
+int blockmap = 0;
 /* SNESREC_WATCH=<hex addr>: log every write to a 16-byte window at that guest
  * address, with the PC that did it. A statically recompiled binary can only
  * execute WRAM code if the WRAM bytes match what was traced, so "who was
@@ -244,12 +263,8 @@ void draw_sprite_8x8_4bpp(int px, int py, int tile_index, int palindex, int Hfli
 void draw_sprite_8x8_2bpp(int px, int py, int tile_index, int palindex, int Hflip, int Vflip);
 void draw_vram_2bpp(int offset);
 void draw_vram_4bpp(int offset);
-void draw_oam(void);
 
-void draw_screen(void);
-void draw_mode0(void);
-void draw_mode1(void);
-void draw_mode3(void);
+void draw_scanline(int y);
 
 bool Running = true;
 
@@ -283,6 +298,9 @@ int main(int argc, char **argv)
   ppu_log_on  = getenv("SNESREC_PPULOG") ? 1 : 0;
   dma_log_on  = getenv("SNESREC_DMALOG") ? 1 : 0;
   wram_log_on = getenv("SNESREC_WRAMLOG") ? 1 : 0;
+  { const char *lm = getenv("SNESREC_LAYERS");
+    if (lm && *lm) layer_mask = (int)strtoul(lm, NULL, 16); }
+  blockmap = getenv("SNESREC_BLOCKMAP") ? 1 : 0;
   { const char *d = getenv("SNESREC_DBRAT");
     dbr_at = d && *d ? strtoul(d, NULL, 16) : 0; }
   { const char *w = getenv("SNESREC_WATCH");
@@ -364,6 +382,10 @@ void dump_io_stats(void)
       printf(" %02X", nmitimen_log[j % NMITIMEN_LOG]);
     printf("\n");
   }
+  printf("\n=== HDMA targets (%lu byte writes) ===\n", hdma_units);
+  for (int h = 0; h < 256; ++h)
+    if (hdma_target_hist[h])
+      printf("  $%04X  %lu\n", 0x2100 + h, hdma_target_hist[h]);
   printf("\n=== IO read histogram (top 12) ===\n");
   while (shown < 12) {
     int bi = -1; best = 0;
@@ -422,6 +444,8 @@ void DoMessages(void)
 }
 
 int NMI = 0;
+static int cur_line = 0;        /* next visible line to render this frame */
+static int frame_started = 0;   /* has hdma_init() run for this frame yet */
 extern "C" void Render(void)
 {
   if (dbr_at) {
@@ -437,20 +461,44 @@ extern "C" void Render(void)
   }
   if (NMI)
     return;
-  
+
+  /*
+   * Advance the scanline machinery to wherever the CPU has got to. Each line
+   * runs its HDMA first and is then rendered with the register state that
+   * HDMA just installed -- which is the whole point of doing this per line.
+   */
+  if (CycleCount >= VBLANK_CYCLES) {
+    if (!frame_started) { hdma_init(&dma); frame_started = 1; }
+    unsigned long target =
+      (unsigned long)((CycleCount - VBLANK_CYCLES) * SNES_HEIGHT / ACTIVE_CYCLES);
+    if (target > SNES_HEIGHT) target = SNES_HEIGHT;
+    while (cur_line < (int)target) {
+      hdma_run_line(&dma);
+      draw_scanline(cur_line);
+      cur_line++;
+    }
+  }
+
   if ((CycleCount >= NMI_CYCLES) || RecompBreak) {
     io.JOY1H = (input1 >> 8) & 0xFF;
     io.JOY1L = input1 & 0xFF;
     input1 = 0;
-    
-    draw_screen();
+
+    /* Finish any lines the cycle estimate did not reach. */
+    while (cur_line < SNES_HEIGHT) {
+      hdma_run_line(&dma);
+      draw_scanline(cur_line);
+      cur_line++;
+    }
     // draw_vram_4bpp(0xC000);
     // draw_palette();
-    
+
     plat_present(framebuf, SNES_WIDTH, SNES_HEIGHT);
     DoMessages();
-    
+
     CycleCount = 0;
+    cur_line = 0;
+    frame_started = 0;
     NMI = 1;
     nmi_raised++;
   }
@@ -1753,231 +1801,204 @@ void draw_vram_4bpp(int offset)
   }
 }
 
-void draw_screen(void)
-{
-  // clear framebuf
-  int len = SNES_WIDTH * SNES_HEIGHT;
-  for (int i = 0; i < len; ++i) {
-    framebuf[i] = snes_color_to_rgb(ppu.cgram[0]|(ppu.cgram[1]<<8));
-  }
-  
-  // printf("ppu.BGMODE=%d\n", ppu.BGMODE);
-  switch (ppu.BGMODE & 7) {
-    case 0: draw_mode0(); break;
-    case 1: draw_mode1(); break;
-    case 3: draw_mode3(); break;
-    default:
-      break;
-  }
-  if (ppu.TM & 0x10) draw_oam();
-  
-  // apply brightness
-  for (int i = 0; i < len; ++i) {
-    float brightness = (float)(ppu.INIDISP & 0xF) / 15.0;
-    uint8_t r = ((framebuf[i] >> 24)  & 0xFF) * brightness;
-    uint8_t g = ((framebuf[i] >> 16) & 0xFF) * brightness;
-    uint8_t b = ((framebuf[i] >> 8)  & 0xFF) * brightness;
-    uint8_t a = ((framebuf[i] >> 0)  & 0xFF) * brightness;
-    framebuf[i] = (r << 24) | (g << 16) | (b << 8) | a;
-  }
-}
+/*
+ * Scanline rendering.
+ *
+ * This used to draw the whole frame in one pass at NMI, from whatever PPU
+ * register state happened to exist at that instant. That makes every
+ * per-scanline effect impossible by construction -- and per-scanline effects
+ * are how the SNES does gradients, fades, split scrolls and colour ramps, all
+ * driven by HDMA. FF6's title sky is exactly that, which is why it came out
+ * as flat horizontal bands.
+ *
+ * Now each line is rendered as the CPU reaches it, with that line's HDMA run
+ * first, so the line sees the register values the game wrote for it.
+ */
 
-void draw_sprite_16x16_4bpp(int px, int py, int tile_index, int palindex, int Hflip, int Vflip)
+/* One BG layer, one scanline. bpp is 2, 4 or 8. */
+static void draw_bg_scanline(int y, uint8_t BGSC, int chrbase, int bpp,
+                             uint16_t hofs, uint16_t vofs)
 {
-  for (int y = 0; y < 2; ++y) {
-    for (int x = 0; x < 2; ++x) {
-      int _x = (Hflip) ? (1 - x) : x;
-      int _y = (Vflip) ? (1 - y) : y;
-      int dx = px + _x * 8;
-      int dy = py + _y * 8;
-      int tile = tile_index + (x + y * 16) * 0x20;
-      draw_sprite_8x8_4bpp(dx, dy, tile, palindex, Hflip, Vflip);
+  int width   = (BGSC & 1) ? 64 : 32;
+  int height  = (BGSC & 2) ? 64 : 32;
+  int map     = ((BGSC >> 2) & 0x3F) << 11;
+  int bytes   = bpp * 8;                    /* bytes per 8x8 tile          */
+  int palsize = (bpp == 2) ? 8 : 32;        /* CGRAM bytes per palette     */
+
+  int ey   = (y + vofs) & (height * 8 - 1);
+  int trow = ey >> 3;
+  int fy   = ey & 7;
+
+  for (int x = 0; x < SNES_WIDTH; ++x) {
+    int ex   = (x + hofs) & (width * 8 - 1);
+    int tcol = ex >> 3;
+    int fx   = ex & 7;
+
+    /*
+     * A 64-tile-wide map is two 32x32 screens side by side and a 64-tall one
+     * stacks them; each screen is 0x800 bytes. The old code masked the tile
+     * index with a plain modulo and so folded all four onto the first.
+     */
+    int off;
+    if (blockmap) {
+      /*
+       * What the hardware actually does: a 64-wide map is two 32x32 screens
+       * side by side and a 64-tall one stacks them, each screen 0x800 bytes.
+       * Left off by default because switching FF6 to it makes BG1 render as
+       * opaque black over the whole screen -- the tilemap CONTENT in our VRAM
+       * does not match this layout, which points at the upload path rather
+       * than at the renderer, and is a separate bug to chase.
+       */
+      int scr = 0;
+      if (tcol & 32) scr += 1;
+      if (trow & 32) scr += (width == 64) ? 2 : 1;
+      off = scr * 0x800 + (((trow & 31) * 32 + (tcol & 31)) * 2);
+    } else {
+      off = (trow * width + tcol) * 2;
     }
+
+    uint16_t td = *(uint16_t *)&ppu.vram[(map + off) & 0xFFFE];
+    int tile  = td & 0x3FF;
+    int pal   = (td >> 10) & 7;
+    int hflip = (td >> 14) & 1;
+    int vflip = (td >> 15) & 1;
+
+    int ty  = vflip ? (7 - fy) : fy;
+    int bit = hflip ? fx : (7 - fx);
+    int tp  = (chrbase + tile * bytes) & 0xFFFF;
+
+    int pindex = 0;
+    for (int plane = 0; plane < bpp; plane += 2) {
+      int a = (tp + plane * 8 + ty * 2) & 0xFFFF;
+      pindex |= ((ppu.vram[a]              >> bit) & 1) <<  plane;
+      pindex |= ((ppu.vram[(a + 1) & 0xFFFF] >> bit) & 1) << (plane + 1);
+    }
+    if (!pindex) continue;                  /* colour 0 is transparent     */
+
+    int c = (bpp == 8) ? pindex * 2 : pal * palsize + pindex * 2;
+    framebuf[y * SNES_WIDTH + x] =
+      snes_color_to_rgb(ppu.cgram[c & 0x1FF] | (ppu.cgram[(c + 1) & 0x1FF] << 8));
   }
 }
 
-void draw_oam(void)
+/* OBJ sizes chosen by OBJSEL bits 5-7, indexed by the per-sprite size bit. */
+static const int obj_w[8][2] = {{8,16},{8,32},{8,64},{16,32},{16,64},{32,64},{16,32},{16,32}};
+static const int obj_h[8][2] = {{8,16},{8,32},{8,64},{16,32},{16,64},{32,64},{32,64},{32,32}};
+
+static void draw_obj_scanline(int y)
 {
   int objsize = (ppu.OBJSEL >> 5) & 7;
-  int nb_sel = (ppu.OBJSEL >> 3) & 3;
+  int nb_sel  = (ppu.OBJSEL >> 3) & 3;
   int nb_addr = (ppu.OBJSEL & 7) << 14;
-  
-  for (int i = 0; i < 128; ++i) {
+
+  /* Lower OAM index wins, so walk backwards and let earlier sprites overpaint. */
+  for (int i = 127; i >= 0; --i) {
     int base = i * 4;
-    int x = ppu.oam[base + 0];
-    int y = ppu.oam[base + 1] + 1;
     int attr = ppu.oam[base + 3];
-    int palette = (attr >> 1) & 7;
+    int hi   = ppu.oam[512 + i / 4];
+    int s    = (hi >> ((i % 4) * 2 + 1)) & 1;
+    int w    = obj_w[objsize][s];
+    int h    = obj_h[objsize][s];
+
+    /* OAM Y is 8 bits, so a tall sprite near the bottom wraps into the top. */
+    int sy = ppu.oam[base + 1] + 1;
+    int ry = y - sy;
+    if (ry < 0 || ry >= h) {
+      ry = y + 256 - sy;
+      if (ry < 0 || ry >= h) continue;
+    }
+
+    int sx = (((hi >> ((i % 4) * 2)) & 1) << 8) | ppu.oam[base + 0];
+    if (sx > 255) sx -= 512;                /* the 9th bit is a sign bit   */
+
+    int pal   = (attr >> 1) & 7;
     int hflip = (attr >> 6) & 1;
     int vflip = (attr >> 7) & 1;
-    int name_table = attr & 1;
-    int x_hi = (ppu.oam[512 + i / 4] >> (i % 4) * 2) & 1;
-    int s = (ppu.oam[512 + i / 4] >> ((i % 4) * 2 + 1)) & 1;
-    x = (x_hi << 8) | x;
-    int tile = ppu.oam[base + 2] + (name_table * 0x100);
-    if (objsize == 0) {
-      if (s == 0) {
-        draw_sprite_8x8_4bpp(x, y, nb_addr + (tile * 0x20), 8 + palette, hflip, vflip);
-      } else {
-        draw_sprite_8x8_4bpp(x,     y,     nb_addr + (tile        * 0x20), 8 + palette, hflip, vflip);
-        draw_sprite_8x8_4bpp(x + 8, y,     nb_addr + ((tile + 1)  * 0x20), 8 + palette, hflip, vflip);
-        draw_sprite_8x8_4bpp(x,     y + 8, nb_addr + ((tile + 16) * 0x20), 8 + palette, hflip, vflip);
-        draw_sprite_8x8_4bpp(x + 8, y + 8, nb_addr + ((tile + 17) * 0x20), 8 + palette, hflip, vflip);
-      }
-    } else
-    if (objsize == 3) {
-      if (s == 0) {
-        draw_sprite_16x16_4bpp(x, y, nb_addr + (tile * 0x20), 8 + palette, hflip, vflip);
-      } else {
-        draw_sprite_8x8_4bpp(x,     y,     nb_addr + (tile        * 0x20), 8 + palette, hflip, vflip);
-        draw_sprite_8x8_4bpp(x + 8, y,     nb_addr + ((tile + 1)  * 0x20), 8 + palette, hflip, vflip);
-        draw_sprite_8x8_4bpp(x,     y + 8, nb_addr + ((tile + 16) * 0x20), 8 + palette, hflip, vflip);
-        draw_sprite_8x8_4bpp(x + 8, y + 8, nb_addr + ((tile + 17) * 0x20), 8 + palette, hflip, vflip);
-      }
+    int tile  = ppu.oam[base + 2] + ((attr & 1) << 8);
+
+    int oy = vflip ? (h - 1 - ry) : ry;
+    for (int x = 0; x < w; ++x) {
+      int dx = sx + x;
+      if (dx < 0 || dx >= SNES_WIDTH) continue;
+      int ox = hflip ? (w - 1 - x) : x;
+
+      int t  = (tile + (oy >> 3) * 16 + (ox >> 3)) & 0x1FF;
+      int tp = nb_addr + (t & 0xFF) * 0x20;
+      if (t & 0x100) tp += (nb_sel + 1) << 13;
+
+      int ty  = oy & 7;
+      int bit = 7 - (ox & 7);
+      int a0 = (tp + ty * 2) & 0xFFFF;
+      int a1 = (tp + 16 + ty * 2) & 0xFFFF;
+      int pindex = ( (ppu.vram[a0]                >> bit) & 1)
+                 | (((ppu.vram[(a0 + 1) & 0xFFFF] >> bit) & 1) << 1)
+                 | (((ppu.vram[a1]                >> bit) & 1) << 2)
+                 | (((ppu.vram[(a1 + 1) & 0xFFFF] >> bit) & 1) << 3);
+      if (!pindex) continue;
+
+      int c = (8 + pal) * 32 + pindex * 2;   /* OBJ uses the upper CGRAM half */
+      framebuf[y * SNES_WIDTH + dx] =
+        snes_color_to_rgb(ppu.cgram[c & 0x1FF] | (ppu.cgram[(c + 1) & 0x1FF] << 8));
     }
   }
 }
 
-void draw_mode0(void)
+void draw_scanline(int y)
 {
-  // Draw BG1
-  int bg1_base = ((((ppu.BG1SC >> 2) & 0x3F) << 10) * 2) & 0xFFFF;
-  int bg1_chrbase = ((ppu.BG12NBA & 0xF) << 12) * 2;
-  
-  for (int y = 0; y < 32; ++y) {
-    for (int x = 0; x < 32; ++x) {
-      int p = bg1_base+(y*32+x)*2;
-      p %= 0xFFFE;
-      uint16_t tiledata = *(uint16_t*)&ppu.vram[p];
-      uint16_t tile = (tiledata & 0x3FF);
-      uint8_t palette = (tiledata >> 10) & 7;
-      uint8_t Hflip = (tiledata >> 14) & 1;
-      
-      draw_sprite_8x8_2bpp(
-        x * 8,
-        y * 8,
-        bg1_chrbase + (tile * 16),
-        0,
-        Hflip,
-        0
-      );
+  uint32_t back = snes_color_to_rgb(ppu.cgram[0] | (ppu.cgram[1] << 8));
+  for (int x = 0; x < SNES_WIDTH; ++x)
+    framebuf[y * SNES_WIDTH + x] = back;
+
+  if (!(ppu.INIDISP & 0x80)) {              /* forced blank draws nothing  */
+    int tm   = ppu.TM & layer_mask;
+    int chr1 = ( ppu.BG12NBA       & 0xF) << 13;
+    int chr2 = ((ppu.BG12NBA >> 4) & 0xF) << 13;
+    int chr3 = ( ppu.BG34NBA       & 0xF) << 13;
+
+    /*
+     * NOTE: this is BG1, BG2, BG3, which is not the hardware priority order
+     * (BG3 belongs behind BG1 in mode 1). It is kept because reversing it
+     * makes FF6 render as a black screen -- BG1's tiles come out opaque and
+     * black, so whatever paints last wins. Fixing that needs the BG1 tilemap
+     * content problem solved first; see SNESREC_BLOCKMAP.
+     */
+    switch (ppu.BGMODE & 7) {
+      case 0:
+        if (tm & 0x01) draw_bg_scanline(y, ppu.BG1SC, chr1, 2, ppu.BG1HOFS, ppu.BG1VOFS);
+        if (tm & 0x02) draw_bg_scanline(y, ppu.BG2SC, chr2, 2, ppu.BG2HOFS, ppu.BG2VOFS);
+        if (tm & 0x04) draw_bg_scanline(y, ppu.BG3SC, chr3, 2, ppu.BG3HOFS, ppu.BG3VOFS);
+        break;
+      case 1:
+        if (tm & 0x01) draw_bg_scanline(y, ppu.BG1SC, chr1, 4, ppu.BG1HOFS, ppu.BG1VOFS);
+        if (tm & 0x02) draw_bg_scanline(y, ppu.BG2SC, chr2, 4, ppu.BG2HOFS, ppu.BG2VOFS);
+        if (tm & 0x04) draw_bg_scanline(y, ppu.BG3SC, chr3, 2, ppu.BG3HOFS, ppu.BG3VOFS);
+        break;
+      case 3:
+        if (tm & 0x02) draw_bg_scanline(y, ppu.BG2SC, chr2, 4, ppu.BG2HOFS, ppu.BG2VOFS);
+        if (tm & 0x01) draw_bg_scanline(y, ppu.BG1SC, chr1, 8, ppu.BG1HOFS, ppu.BG1VOFS);
+        break;
+      default:
+        break;
+    }
+    if (tm & 0x10) draw_obj_scanline(y);
+  }
+
+  /*
+   * Master brightness, per line. $2100 is one of the most common HDMA targets
+   * there is, because that register is how fades are done.
+   */
+  int bright = (ppu.INIDISP & 0x80) ? 0 : (ppu.INIDISP & 0xF);
+  if (bright != 15) {
+    for (int x = 0; x < SNES_WIDTH; ++x) {
+      uint32_t p = framebuf[y * SNES_WIDTH + x];
+      uint32_t r = (((p >> 16) & 0xFF) * bright) / 15;
+      uint32_t g = (((p >>  8) & 0xFF) * bright) / 15;
+      uint32_t b = (( p        & 0xFF) * bright) / 15;
+      framebuf[y * SNES_WIDTH + x] = (r << 16) | (g << 8) | b;
     }
   }
 }
 
-void draw_bg1(void)
-{
-  int width  = ((ppu.BG1SC & 1) ? 64 : 32);
-  int height = ((ppu.BG1SC & 2) ? 64 : 32);
-  int bg1_base = (((ppu.BG1SC >> 2) & 0x3F) << 10) * 2;
-  int bg1_chrbase = ((ppu.BG12NBA & 0xF) << 12) * 2;
-  int scrollx = ppu.BG1HOFS;
-  int scrolly = ppu.BG1VOFS;
-  
-  for (int y = 0; y < 28; ++y) {
-    for (int x = 0; x < 32; ++x) {
-      int _x = abs((x + (scrollx >> 3)) % width);
-      int _y = abs((y + (scrolly >> 3)) % height);
-      int offset = (_y * width + _x) * 2;
-      
-      uint16_t tiledata = *(uint16_t*)&ppu.vram[bg1_base+offset];
-      uint16_t tile = tiledata & 0x3FF;
-      uint8_t palette = (tiledata >> 10) & 7;
-      uint8_t Hflip = (tiledata >> 14) & 1;
-      uint8_t Vflip = (tiledata >> 15) & 1;
-      
-      int tx = x * 8;
-      int ty = y * 8;
-      
-      draw_sprite_8x8_4bpp(tx, ty, bg1_chrbase + (tile * 32), palette, Hflip, Vflip);
-    }
-  }
-}
-
-void draw_bg2(void)
-{
-  int width  = ((ppu.BG2SC & 1) ? 64 : 32);
-  int height = ((ppu.BG2SC & 2) ? 64 : 32);
-  int bg_base = (((ppu.BG2SC >> 2) & 0x3F) << 11);
-  int bg_chrbase = (((ppu.BG12NBA >> 4) & 0xF) << 12) * 2;
-  int scrollx = ppu.BG2HOFS;
-  int scrolly = ppu.BG2VOFS;
-  
-  for (int y = 0; y < 28; ++y) {
-    for (int x = 0; x < 32; ++x) {
-      int _x = abs((x + (scrollx >> 3)) % width);
-      int _y = abs((y + (scrolly >> 3)) % height);
-      int offset = (_y * width + _x) * 2;
-      
-      uint16_t tiledata = *(uint16_t*)&ppu.vram[bg_base+offset];
-      uint16_t tile = tiledata & 0x3FF;
-      uint8_t palette = (tiledata >> 10) & 7;
-      uint8_t Hflip = (tiledata >> 14) & 1;
-      uint8_t Vflip = (tiledata >> 15) & 1;
-      
-      int tx = x * 8;
-      int ty = y * 8;
-      
-      draw_sprite_8x8_4bpp(tx, ty, bg_chrbase + (tile * 32), palette, Hflip, Vflip);
-    }
-  }
-}
-
-void draw_bg3(void)
-{
-  int width = (ppu.BG3SC & 1) + 1; width *= 32;
-  int height = ((ppu.BG3SC >> 1) & 1) + 1; height *= 32;
-  int bg_base = (((ppu.BG3SC >> 2) & 0x3F) << 11);
-  int bg_chrbase = ((ppu.BG34NBA & 0xF) << 12) * 2;
-  
-  for (int y = 0; y < 28; ++y) {
-    for (int x = 0; x < 32; ++x) {
-      uint16_t tiledata = *(uint16_t*)&ppu.vram[bg_base+(y*width+x)*2];
-      uint16_t tile = tiledata & 0x3FF;
-      uint8_t palette = (tiledata >> 10) & 7;
-      uint8_t Hflip = (tiledata >> 14) & 1;
-      uint8_t Vflip = (tiledata >> 15) & 1;
-      
-      int tx = x * 8;
-      int ty = y * 8;
-      
-      draw_sprite_8x8_2bpp(tx, ty, (tile * 16) + bg_chrbase, palette, Hflip, Vflip);
-    }
-  }
-}
-
-void draw_mode1(void)
-{
-  if (ppu.TM & 0x01) draw_bg1();
-  if (ppu.TM & 0x02) draw_bg2();
-  if (ppu.TM & 0x04) draw_bg3();
-}
-
-void draw_mode3(void)
-{
-  if (ppu.TM & 0x01) {
-    int width = (ppu.BG1SC & 1) + 1; width *= 32;
-    int height = ((ppu.BG1SC >> 1) & 1) + 1; height *= 32;
-    int bg1_base = (((ppu.BG1SC >> 2) & 0x3F) << 11);
-    int bg1_chrbase = ((ppu.BG12NBA & 0xF) << 12) * 2;
-    
-    for (int y = 0; y < 28; ++y) {
-      for (int x = 0; x < 32; ++x) {
-        uint16_t tiledata = *(uint16_t*)&ppu.vram[bg1_base+(y*width+x)*2];
-        uint16_t tile = tiledata & 0x3FF;
-        uint8_t palette = (tiledata >> 10) & 7;
-        uint8_t Hflip = (tiledata >> 14) & 1;
-        uint8_t Vflip = (tiledata >> 15) & 1;
-        
-        int tx = x * 8;
-        int ty = y * 8;
-        
-        draw_sprite_8x8_8bpp(tx, ty, bg1_chrbase + (tile * 64), 0, Hflip, Vflip);
-      }
-    }
-  }
-  if (ppu.TM & 0x02) draw_bg2();
-}
 
 uint32_t pc_to_HiRom(uint32_t pc)
 {
