@@ -65,6 +65,9 @@ typedef struct EmitOps {
 	const char *name;
 
 	void (*prologue)(void);                 /* externs + section directive */
+
+	/* Export a symbol. yasm spells it "global X", GNU as ".global X". */
+	void (*global_sym)(const char *fmt, ...);
 	void (*label)(const char *fmt, ...);
 
 	void (*mov_reg_imm)(VReg d, uint32_t imm);
@@ -92,6 +95,9 @@ typedef struct EmitOps {
 	 * instruction and neither backend has to clobber a virtual register to
 	 * test a flag. Every conditional branch uses it: cmp byte [rel Z_Flag], 0 */
 	void (*cmp_sym_imm)(const char *sym, uint32_t imm, EWidth w);
+
+	/* cmp_imm with the constant printed at a fixed width -- see alu_imm_w. */
+	void (*cmp_imm_w)(VReg a, uint32_t imm, EWidth w);
 
 	/* store 1 into sym (a byte) if the preceding cmp_imm compared equal, else
 	 * store 0. Used for BIT #imm, which sets only Z from a value that never

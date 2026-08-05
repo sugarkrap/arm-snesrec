@@ -64,6 +64,16 @@ static void a_prologue(void)
 
 static void a_put_label(const char *fmt, va_list ap);
 
+static void a_global_sym(const char *fmt, ...)
+{
+	va_list ap;
+	printf("\t.global ");
+	va_start(ap, fmt);
+	a_put_label(fmt, ap);
+	va_end(ap);
+	printf("\n");
+}
+
 static void a_label(const char *fmt, ...)
 {
 	va_list ap;
@@ -170,6 +180,14 @@ static void a_alu_reg(EAlu op, VReg d, VReg s)
 {
 	a_tick(1);
 	printf("\t%s %s, %s, %s\n", alu_mnem(op), R[d], R[d], R[s]);
+}
+
+static void a_cmp_imm(VReg a, uint32_t imm);
+
+static void a_cmp_imm_w(VReg a, uint32_t imm, EWidth w)
+{
+	(void)w;   /* ldr= carries any constant; width is a printing detail */
+	a_cmp_imm(a, imm);
 }
 
 static void a_cmp_sym_imm(const char *sym, uint32_t imm, EWidth w)
@@ -387,6 +405,7 @@ unsigned long armv5_unported_sites(void)
 const EmitOps emit_armv5 = {
 	"armv5",
 	a_prologue,
+	a_global_sym,
 	a_label,
 	a_mov_reg_imm,
 	a_mov_reg_immw,
@@ -399,6 +418,7 @@ const EmitOps emit_armv5 = {
 	a_alu_imm_w,
 	a_cmp_imm,
 	a_cmp_sym_imm,
+	a_cmp_imm_w,
 	a_set_eq_sym,
 	a_jump,
 	a_call_sym,

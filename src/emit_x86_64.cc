@@ -35,6 +35,16 @@ static void x_prologue(void)
 	printf("  section .text\n");
 }
 
+static void x_global_sym(const char *fmt, ...)
+{
+	va_list ap;
+	printf("  global ");
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
+	va_end(ap);
+	printf("\n");
+}
+
 static void x_label(const char *fmt, ...)
 {
 	va_list ap;
@@ -133,6 +143,14 @@ static void x_alu_reg(EAlu op, VReg d, VReg s)
 	printf("  %s %s, %s\n", alu_mnem(op), R64[d], R64[s]);
 }
 
+static void x_cmp_imm_w(VReg a, uint32_t imm, EWidth w)
+{
+	if (w == EW24)
+		printf("  cmp %s, 0x%06X\n", R64[a], imm);
+	else
+		printf("  cmp %s, 0x%X\n", R64[a], imm);
+}
+
 static void x_cmp_sym_imm(const char *sym, uint32_t imm, EWidth w)
 {
 	printf("  cmp %s [rel %s], %u\n", width_kw(w), sym, imm);
@@ -208,6 +226,7 @@ static void x_raw(const char *fmt, ...)
 const EmitOps emit_x86_64 = {
 	"x86_64",
 	x_prologue,
+	x_global_sym,
 	x_label,
 	x_mov_reg_imm,
 	x_mov_reg_immw,
@@ -220,6 +239,7 @@ const EmitOps emit_x86_64 = {
 	x_alu_imm_w,
 	x_cmp_imm,
 	x_cmp_sym_imm,
+	x_cmp_imm_w,
 	x_set_eq_sym,
 	x_jump,
 	x_call_sym,

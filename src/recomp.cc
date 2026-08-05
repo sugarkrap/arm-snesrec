@@ -137,7 +137,7 @@ int main(int argc, char **argv)
   printf("\n");
   
   E->raw("  section .text\n");
-  printf("__CALL_ADDRESS:\n");
+  E->label("__CALL_ADDRESS");
   E->raw("  mov r12, rcx\n");
   E->raw("  sub rsp, 32\n");
   E->raw("  call __CALL_SHOW\n");
@@ -146,16 +146,16 @@ int main(int argc, char **argv)
   E->raw("  and rcx, 0xFFFFFF\n");
   int i = 0;
   for (auto r : routines) {
-    E->raw("  cmp rcx, 0x%06X\n", r);
-    E->raw("  jne .next_%d\n", i);
-    E->raw("  jmp Label_%06X\n", r);
-    printf(".next_%d:\n", i);
+    E->cmp_imm_w(VR_ARG0, r, EW24);
+    E->jump(EC_NE, ".next_%d", i);
+    E->jump(EC_ALWAYS, "Label_%06X", r);
+    E->label(".next_%d", i);
     i++;
   }
   E->raw("  mov rdx, rbx\n");
   E->raw("  call __JUMP_FAILED\n\n");
   
-  printf("__CPUSync:\n");
+  E->label("__CPUSync");
   E->raw("  sub rsp, 32\n");
   E->raw("  call Render\n");
   E->raw("  add rsp, 32\n");
@@ -201,8 +201,8 @@ int main(int argc, char **argv)
   E->raw("  ret\n\n");
   
   printf("\n");
-  E->raw("  global Start\n");
-  printf("Start:\n");
+  E->global_sym("Start");
+  E->label("Start");
   E->raw("  mov byte [rel MapMode], %d\n", MapMode);
   E->raw("  ret\n");
   
@@ -212,36 +212,36 @@ int main(int argc, char **argv)
     if (is_routines(ca.pc)) {
       printf("\n");
       if (ca.pc == ResetVector) {
-        E->raw("  global Label_Reset\n");
-        printf("Label_Reset:\n");
+        E->global_sym("Label_Reset");
+        E->label("Label_Reset");
       } else
       if (ca.pc == NMIVector) {
-        E->raw("  global Label_NMI\n");
-        printf("Label_NMI:\n");
+        E->global_sym("Label_NMI");
+        E->label("Label_NMI");
         FoundNMI = 1;
       } else
       if (ca.pc == BRKVector) {
-        E->raw("  global Label_BRK\n");
-        printf("Label_BRK:\n");
+        E->global_sym("Label_BRK");
+        E->label("Label_BRK");
         FoundBRK = 1;
       }
       if (ca.pc == COPVector) {
-        E->raw("  global Label_COP\n");
-        printf("Label_COP:\n");
+        E->global_sym("Label_COP");
+        E->label("Label_COP");
         FoundCOP = 1;
       }
       if (in_wram(ca.pc)) {
         if (std::find(vram_addrs.begin(), vram_addrs.end(), ca.pc) == vram_addrs.end()) {
-          E->raw("  global Label_%06X\n", ca.pc);
-          printf("Label_%06X:\n", ca.pc);
+          E->global_sym("Label_%06X", ca.pc);
+          E->label("Label_%06X", ca.pc);
           vram_addrs.insert(ca.pc);
         }
       } else {
-        E->raw("  global Label_%06X\n", ca.pc);
-        printf("Label_%06X:\n", ca.pc);
+        E->global_sym("Label_%06X", ca.pc);
+        E->label("Label_%06X", ca.pc);
       }
     }
-    E->raw("  ; -- %06X --\n", ca.pc);
+    E->comment("-- %06X --", ca.pc);
     if (in_wram(ca.pc)) {
       E->raw("  mov rcx, 0x%06X\n", ca.pc);
       E->raw("  sub rsp, 32\n");
@@ -268,8 +268,8 @@ int main(int argc, char **argv)
   }
   
   if (!NMIVector || !FoundNMI) {
-    E->raw("  global Label_NMI\n");
-    printf("Label_NMI:\n");
+    E->global_sym("Label_NMI");
+    E->label("Label_NMI");
     E->raw("  mov byte [rel inNMI], 0\n");
     CALL_FUNCTION_STK("__PLP");
     CALL_FUNCTION_STK("__PULL8");
@@ -285,8 +285,8 @@ int main(int argc, char **argv)
     E->raw("  jmp __CALL_ADDRESS\n\n");
   }
   if (!BRKVector || !FoundBRK) {
-    E->raw("  global Label_BRK\n");
-    printf("Label_BRK:\n");
+    E->global_sym("Label_BRK");
+    E->label("Label_BRK");
     E->raw("  mov byte [rel inNMI], 0\n");
     CALL_FUNCTION_STK("__PLP");
     CALL_FUNCTION_STK("__PULL8");
@@ -302,8 +302,8 @@ int main(int argc, char **argv)
     E->raw("  jmp __CALL_ADDRESS\n\n");
   }
   if (!COPVector || !FoundCOP) {
-    E->raw("  global Label_COP\n");
-    printf("Label_COP:\n");
+    E->global_sym("Label_COP");
+    E->label("Label_COP");
     E->raw("  mov byte [rel inNMI], 0\n");
     CALL_FUNCTION_STK("__PLP");
     CALL_FUNCTION_STK("__PULL8");
