@@ -217,6 +217,22 @@ static void x_nop(void)
 	printf("  nop\n");
 }
 
+static void x_frame_enter(void)
+{
+	/* The call pushed the return address; nothing else to set up. */
+}
+
+static void x_frame_return(void)
+{
+	printf("  ret\n");
+}
+
+static void x_frame_discard(void)
+{
+	printf("  add rsp, 32\n");
+	printf("  pop rax ; pop return address\n");
+}
+
 static void x_add_sym_imm(const char *sym, int32_t imm, EWidth w)
 {
 	printf("  add %s [rel %s], %d\n", width_kw(w), sym, imm);
@@ -262,6 +278,9 @@ const EmitOps emit_x86_64 = {
 	x_call_sym,
 	x_call_helper,
 	x_ret,
+	x_frame_enter,
+	x_frame_return,
+	x_frame_discard,
 	x_nop,
 	x_add_sym_imm,
 	x_comment,

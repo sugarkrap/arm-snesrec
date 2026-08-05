@@ -343,6 +343,27 @@ static void a_nop(void)
 	printf("\tmov r0, r0\n");
 }
 
+static void a_frame_enter(void)
+{
+	/* lr holds the return address and every bl below would overwrite it. */
+	a_tick(1);
+	printf("\tpush {lr}\n");
+}
+
+static void a_frame_return(void)
+{
+	a_tick(1);
+	printf("\tpop {pc}\n");
+}
+
+static void a_frame_discard(void)
+{
+	/* Drop the lr pushed by frame_enter: this path does not return. AAPCS
+	 * has no shadow space, so unlike x86 there is nothing else to undo. */
+	a_tick(1);
+	printf("\tadd sp, sp, #4\n");
+}
+
 static void a_add_sym_imm(const char *sym, int32_t imm, EWidth w)
 {
 	a_tick(7);
@@ -428,6 +449,9 @@ const EmitOps emit_armv5 = {
 	a_call_sym,
 	a_call_helper,
 	a_ret,
+	a_frame_enter,
+	a_frame_return,
+	a_frame_discard,
 	a_nop,
 	a_add_sym_imm,
 	a_comment,

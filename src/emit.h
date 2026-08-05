@@ -111,6 +111,23 @@ typedef struct EmitOps {
 	void (*call_sym)(const char *sym);
 	void (*call_helper)(const char *sym);
 	void (*ret)(void);
+
+	/*
+	 * FRAMES. Only one generated routine both is reached by a call and
+	 * returns: __CPUSync. Label_Reset and __CALL_ADDRESS never return, and
+	 * Start makes no calls, so on ARM their lr survives untouched and they
+	 * need nothing. __CPUSync does need a frame, because every bl inside it
+	 * clobbers lr.
+	 *
+	 * frame_discard exists for __CPUSync's NMI path, which abandons the
+	 * return and tail-jumps into Label_NMI. On x86 that means undoing the
+	 * caller's 32 bytes of shadow space and popping the return address; on
+	 * ARM there is no shadow space and the return address is the lr this
+	 * frame pushed, so it is a single stack adjustment.
+	 */
+	void (*frame_enter)(void);      /* x86: nothing.  ARM: push {lr} */
+	void (*frame_return)(void);     /* x86: ret.      ARM: pop {pc}  */
+	void (*frame_discard)(void);    /* abandon the frame, then jump   */
 	void (*nop)(void);
 
 	void (*add_sym_imm)(const char *sym, int32_t imm, EWidth w);  /* cycles */

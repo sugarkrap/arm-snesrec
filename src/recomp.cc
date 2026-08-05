@@ -140,6 +140,7 @@ int main(int argc, char **argv)
   printf("\n");
   
   E->label("__CPUSync");
+  E->frame_enter();
   CALL_FUNCTION_STK("Render");
   printf("  \n");
   // E->raw("  mov al, byte [rel inNMI]\n");
@@ -160,8 +161,7 @@ int main(int argc, char **argv)
   E->cmp_imm(VR_TMP, 0);
   E->jump(EC_EQ, ".return");
   printf("  \n");
-  E->raw("  add rsp, 32\n");
-  E->raw("  pop rax ; pop return address\n");
+  E->frame_discard();
   printf("  \n");
   E->store_sym_imm("inNMI", 1, EW8);
   E->mov_reg_reg(VR_ARG0, VR_SAVE);
@@ -181,7 +181,7 @@ int main(int argc, char **argv)
   E->jump(EC_ALWAYS, "Label_NMI");
   printf("  \n");
   E->label(".return");   /* ".return:" on yasm, ".Lreturn:" on GNU as */
-  E->ret();
+  E->frame_return();
   printf("\n");
   
   printf("\n");
