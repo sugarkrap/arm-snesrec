@@ -119,7 +119,37 @@ int main(int argc, char **argv)
       routines.push_back(ca.pc);
     }
   }
-  
+
+  /*
+   * Drop routines that were never traced.
+   *
+   * The interrupt vectors come from the ROM header, not the trace, and a ROM
+   * can leave one unused -- FF6's reads as 0xFFFF, which maps to C0FFFF. That
+   * address gets a compare in the dispatch chain and a jump to Label_C0FFFF,
+   * but no code was generated for it, so the result is an undefined reference
+   * at LINK time pointing at a synthetic address with no obvious origin.
+   *
+   * An address with no generated code cannot be dispatched to. Removing it
+   * lets the chain fall through to __JUMP_FAILED, which is the runtime's
+   * existing answer for "this address is not in the trace".
+   */
+  {
+    std::set<uint32_t> traced;
+    for (auto ca : addr)
+      traced.insert(ca.pc);
+
+    std::vector<uint32_t> kept;
+    for (auto r : routines)
+      if (traced.count(r))
+        kept.push_back(r);
+
+    if (kept.size() != routines.size())
+      fprintf(stderr, "recomp: %zu of %zu routines have no traced code; "
+                      "they will dispatch to __JUMP_FAILED\n",
+              routines.size() - kept.size(), routines.size());
+    routines = kept;
+  }
+
   E->prologue();
   
   E->label("__CALL_ADDRESS");
@@ -227,12 +257,18 @@ int main(int argc, char **argv)
     }
     E->comment("-- %06X --", ca.pc);
     if (in_wram(ca.pc)) {
-      E->raw("  mov rcx, 0x%06X\n", ca.pc);
-      E->raw("  sub rsp, 32\n");
-      E->raw("  call __READ_INS\n"); // a little risky :(
-      E->raw("  add rsp, 32\n");
-      E->raw("  cmp eax, 0x%08X\n", ca.ins);
-      E->raw("  jne Label_%06X_skip%d\n", ca.pc, skips);
+      /*
+       * Code in WRAM can be rewritten at runtime, so the statically compiled
+       * version is only valid if the bytes still match what was traced: read
+       * the instruction back and skip this block if it has changed.
+       *
+       * The compare is 32-bit because __READ_INS returns uint32_t and the ABI
+       * leaves the upper half undefined.
+       */
+      E->mov_reg_immw(VR_ARG0, ca.pc, EW24);
+      CALL_FUNCTION_STK("__READ_INS");
+      E->cmp_imm_w(VR_TMP, ca.ins, EW32);
+      E->jump(EC_NE, "Label_%06X_skip%d", ca.pc, skips);
     }
     /* Per-instruction preamble: stash the guest PC where __CPUSync and the
      * dispatch can find it, then sync. Emitted once per traced instruction,
@@ -242,65 +278,99 @@ int main(int argc, char **argv)
     CALL_FUNCTION_STK("__CPUSync");
     decode_65C816(ca);
     if (in_wram(ca.pc)) {
-      printf("Label_%06X_skip%d:\n", ca.pc, skips);
+      E->label("Label_%06X_skip%d", ca.pc, skips);
       skips++;
     }
     if ((ca.pc & 0xFFFF) == 0xFFFF) {
-      // pc wraps
-      E->raw("  jmp Label_%02X0000\n", ca.pc >> 16);
+      /*
+       * PC wraps within the bank: 0xFFFF + 1 is 0x0000 of the SAME bank.
+       *
+       * A direct jump is only legal if that address was traced and got a
+       * label. It usually was not -- running off the end of a bank is exactly
+       * the kind of path a trace does not cover -- and emitting the jump
+       * anyway produces an undefined reference at LINK time, with nothing to
+       * say which uncovered address caused it. FF6 hits this at C2FFF6.
+       *
+       * Untraced targets already have a runtime answer: __CALL_ADDRESS
+       * dispatches on the address and falls through to __JUMP_FAILED when it
+       * knows nothing about it. Route through that instead, so an uncovered
+       * path reports itself when it is taken rather than breaking the build.
+       */
+      uint32_t wrap = (ca.pc & 0xFF0000);
+      if (is_routines(wrap)) {
+        E->jump(EC_ALWAYS, "Label_%06X", wrap);
+      } else {
+        E->mov_reg_immw(VR_ARG0, wrap, EW24);
+        E->mov_reg_immw(VR_PC, ca.pc, EW24);
+        E->jump(EC_ALWAYS, "__CALL_ADDRESS");
+      }
     }
   }
   
   if (!NMIVector || !FoundNMI) {
     E->global_sym("Label_NMI");
     E->label("Label_NMI");
-    E->raw("  mov byte [rel inNMI], 0\n");
+    E->store_sym_imm("inNMI", 0, EW8);
     CALL_FUNCTION_STK("__PLP");
     CALL_FUNCTION_STK("__PULL8");
-    E->raw("  mov bl, al\n");
+    E->mov_reg_reg(VR_PC, VR_TMP);
+    E->alu_imm(EA_AND, VR_PC, 0xFF);
     CALL_FUNCTION_STK("__PULL8");
-    E->raw("  mov bh, al\n");
-    E->raw("  and rbx, 0xFFFF\n");
+    E->alu_imm(EA_AND, VR_TMP, 0xFF);
+    E->alu_imm(EA_SHL, VR_TMP, 8);
+    E->alu_reg(EA_OR, VR_PC, VR_TMP);
+    E->alu_imm(EA_AND, VR_PC, 0xFFFF);
     CALL_FUNCTION_STK("__PULL8");
-    E->raw("  movzx rcx, al\n");
-    E->raw("  shl rcx, 16\n");
-    E->raw("  or rcx, rbx\n");
-    E->raw("  mov rbx, 0xFFFFF0\n");
-    E->raw("  jmp __CALL_ADDRESS\n\n");
+    E->mov_reg_reg(VR_ARG0, VR_TMP);
+    E->alu_imm(EA_AND, VR_ARG0, 0xFF);
+    E->alu_imm(EA_SHL, VR_ARG0, 16);
+    E->alu_reg(EA_OR, VR_ARG0, VR_PC);
+    E->mov_reg_immw(VR_PC, 0xFFFFF0, EW24);
+    E->jump(EC_ALWAYS, "__CALL_ADDRESS");
+    printf("\n");
   }
   if (!BRKVector || !FoundBRK) {
     E->global_sym("Label_BRK");
     E->label("Label_BRK");
-    E->raw("  mov byte [rel inNMI], 0\n");
+    E->store_sym_imm("inNMI", 0, EW8);
     CALL_FUNCTION_STK("__PLP");
     CALL_FUNCTION_STK("__PULL8");
-    E->raw("  mov bl, al\n");
+    E->mov_reg_reg(VR_PC, VR_TMP);
+    E->alu_imm(EA_AND, VR_PC, 0xFF);
     CALL_FUNCTION_STK("__PULL8");
-    E->raw("  mov bh, al\n");
-    E->raw("  and rbx, 0xFFFF\n");
+    E->alu_imm(EA_AND, VR_TMP, 0xFF);
+    E->alu_imm(EA_SHL, VR_TMP, 8);
+    E->alu_reg(EA_OR, VR_PC, VR_TMP);
+    E->alu_imm(EA_AND, VR_PC, 0xFFFF);
     CALL_FUNCTION_STK("__PULL8");
-    E->raw("  movzx rcx, al\n");
-    E->raw("  shl rcx, 16\n");
-    E->raw("  or rcx, rbx\n");
-    E->raw("  mov rbx, 0xFFFFF1\n");
-    E->raw("  jmp __CALL_ADDRESS\n\n");
+    E->mov_reg_reg(VR_ARG0, VR_TMP);
+    E->alu_imm(EA_AND, VR_ARG0, 0xFF);
+    E->alu_imm(EA_SHL, VR_ARG0, 16);
+    E->alu_reg(EA_OR, VR_ARG0, VR_PC);
+    E->mov_reg_immw(VR_PC, 0xFFFFF1, EW24);
+    E->jump(EC_ALWAYS, "__CALL_ADDRESS");
+    printf("\n");
   }
   if (!COPVector || !FoundCOP) {
     E->global_sym("Label_COP");
     E->label("Label_COP");
-    E->raw("  mov byte [rel inNMI], 0\n");
+    E->store_sym_imm("inNMI", 0, EW8);
     CALL_FUNCTION_STK("__PLP");
     CALL_FUNCTION_STK("__PULL8");
-    E->raw("  mov bl, al\n");
+    E->mov_reg_reg(VR_PC, VR_TMP);
+    E->alu_imm(EA_AND, VR_PC, 0xFF);
     CALL_FUNCTION_STK("__PULL8");
-    E->raw("  mov bh, al\n");
-    E->raw("  and rbx, 0xFFFF\n");
+    E->alu_imm(EA_AND, VR_TMP, 0xFF);
+    E->alu_imm(EA_SHL, VR_TMP, 8);
+    E->alu_reg(EA_OR, VR_PC, VR_TMP);
+    E->alu_imm(EA_AND, VR_PC, 0xFFFF);
     CALL_FUNCTION_STK("__PULL8");
-    E->raw("  movzx rcx, al\n");
-    E->raw("  shl rcx, 16\n");
-    E->raw("  or rcx, rbx\n");
-    E->raw("  mov rbx, 0xFFFFF2\n");
-    E->raw("  jmp __CALL_ADDRESS\n");
+    E->mov_reg_reg(VR_ARG0, VR_TMP);
+    E->alu_imm(EA_AND, VR_ARG0, 0xFF);
+    E->alu_imm(EA_SHL, VR_ARG0, 16);
+    E->alu_reg(EA_OR, VR_ARG0, VR_PC);
+    E->mov_reg_immw(VR_PC, 0xFFFFF2, EW24);
+    E->jump(EC_ALWAYS, "__CALL_ADDRESS");
   }
   if (E == &emit_armv5) {
     unsigned long n = armv5_unported_sites();

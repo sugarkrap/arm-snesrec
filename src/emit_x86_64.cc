@@ -17,6 +17,7 @@
  * why the interface is at the level of load_sym/store_sym rather than exposing
  * them. */
 static const char *R64[VR_COUNT] = { "rcx", "rdx", "rax", "r12", "rbx" };
+static const char *R32[VR_COUNT] = { "ecx", "edx", "eax", "r12d", "ebx" };
 static const char *R16[VR_COUNT] = { "cx",  "dx",  "ax",  "r12w", "bx" };
 static const char *R8 [VR_COUNT] = { "cl",  "dl",  "al",  "r12b", "bl" };
 
@@ -162,10 +163,16 @@ static void x_alu_reg(EAlu op, VReg d, VReg s)
 
 static void x_cmp_imm_w(VReg a, uint32_t imm, EWidth w)
 {
-	if (w == EW24)
+	if (w == EW24) {
 		printf("  cmp %s, 0x%06X\n", R64[a], imm);
-	else
+	} else if (w == EW32) {
+		/* 32-bit view on purpose: this compares a uint32_t returned by a
+		 * helper, whose upper 32 bits are not defined by the ABI. Comparing
+		 * the full register would test whatever happened to be there. */
+		printf("  cmp %s, 0x%08X\n", R32[a], imm);
+	} else {
 		printf("  cmp %s, 0x%X\n", R64[a], imm);
+	}
 }
 
 static void x_cmp_sym_imm(const char *sym, uint32_t imm, EWidth w)
